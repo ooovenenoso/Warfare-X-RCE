@@ -30,7 +30,7 @@ async function sendDiscordWebhook(transaction: any, packageData: any, username: 
       },
       {
         name: "💵 Amount",
-        value: `**$${transaction.amount.toFixed(2)}**`,
+        value: `**$${transaction.final_amount.toFixed(2)}**`,
         inline: true,
       },
       {
@@ -183,15 +183,19 @@ export async function POST(request: Request) {
     console.log("📦 Package data:", packageData)
 
     // Update transaction status to completed
+    const newFinalAmount = (session.amount_total || 0) / 100
     const { error: updateError } = await supabase
       .from("transactions")
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
-        // Update amount from Stripe session to ensure it's correct
-        amount: (session.amount_total || 0) / 100, // Convert from cents
+        // Update final amount from Stripe session to ensure it's correct
+        final_amount: newFinalAmount,
       })
       .eq("id", transaction.id)
+
+    // reflect updated amount locally
+    transaction.final_amount = newFinalAmount
 
     if (updateError) {
       console.error("❌ Error updating transaction:", updateError)
@@ -201,7 +205,7 @@ export async function POST(request: Request) {
 
     // Add credits to user's balance in the game database
     const { data: linkedAccount } = await supabase
-      .from("UsernameLinks")
+      .from("username_links")
       .select("username")
       .eq("discord_id", transaction.discord_id)
       .eq("server_id", transaction.server_id)
@@ -212,7 +216,7 @@ export async function POST(request: Request) {
 
       // Get current balance
       const { data: balanceData } = await supabase
-        .from("EconomyBalance")
+        .from("economy_balance")
         .select("*")
         .eq("server_id", transaction.server_id)
         .eq("player_name", linkedAccount.username)
@@ -220,38 +224,38 @@ export async function POST(request: Request) {
 
       if (balanceData) {
         // Update balance
-        const newBalance = balanceData.balance + transaction.credits
+        const newBalance = balanceData.balance + transaction.credits_purchased
         await supabase
-          .from("EconomyBalance")
+          .from("economy_balance")
           .update({
             balance: newBalance,
-            total_earned: balanceData.total_earned + transaction.credits,
+            total_earned: balanceData.total_earned + transaction.credits_purchased,
             updated_at: new Date().toISOString(),
           })
           .eq("id", balanceData.id)
 
-        console.log(`💰 Updated balance: ${balanceData.balance} + ${transaction.credits} = ${newBalance}`)
+        console.log(`💰 Updated balance: ${balanceData.balance} + ${transaction.credits_purchased} = ${newBalance}`)
       } else {
         // Create new balance record
-        await supabase.from("EconomyBalance").insert({
+        await supabase.from("economy_balance").insert({
           server_id: transaction.server_id,
           player_name: linkedAccount.username,
-          balance: transaction.credits,
-          total_earned: transaction.credits,
+          balance: transaction.credits_purchased,
+          total_earned: transaction.credits_purchased,
           total_spent: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
 
-        console.log(`💰 Created new balance: ${transaction.credits}`)
+        console.log(`💰 Created new balance: ${transaction.credits_purchased}`)
       }
 
       // Log transaction in EconomyTransactions
-      await supabase.from("EconomyTransactions").insert({
+      await supabase.from("economy_transactions").insert({
         server_id: transaction.server_id,
         sender: "Store",
         receiver: linkedAccount.username,
-        amount: transaction.credits,
+        amount: transaction.credits_purchased,
         transaction_type: "store_purchase",
         description: `Credits purchased from store - Package: ${packageData?.name || "Unknown"}`,
         timestamp: new Date().toISOString(),
@@ -270,9 +274,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      credits: transaction.credits,
+      credits: transaction.credits_purchased,
       server: transaction.server_id,
-      amount: (session.amount_total || 0) / 100,
+      amount: newFinalAmount,
     })
   } catch (error) {
     console.error("💥 Payment verification error:", error)
