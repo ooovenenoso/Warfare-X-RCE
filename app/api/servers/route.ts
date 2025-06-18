@@ -5,8 +5,8 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 export async function GET() {
   try {
-    // Obtener todos los servidores únicos desde UsernameLinks
-    const { data: servers, error } = await supabase.from("UsernameLinks").select("server_id").order("server_id")
+    // Obtener todos los servidores únicos desde username_links
+    const { data: servers, error } = await supabase.from("username_links").select("server_id").order("server_id")
 
     if (error) {
       console.error("Error fetching servers:", error)
