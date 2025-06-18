@@ -31,21 +31,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from("UsernameLinks")
       .select("username")
       .eq("discord_id", discordId)
       .eq("server_id", serverId)
       .single()
-
-    if (error) {
-      ;({ data, error } = await supabase
-        .from("username_links")
-        .select("username")
-        .eq("discord_id", discordId)
-        .eq("server_id", serverId)
-        .single())
-    }
 
     if (error || !data) {
       console.warn(`No link found for discordId: ${discordId} on server: ${serverId}`, error)
