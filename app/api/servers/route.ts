@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// Service role client so we can read links regardless of RLS settings
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -8,12 +9,12 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // Retrieve active servers from the servers table
+    // Fetch unique server IDs from UsernameLinks so players only see
+    // servers that have linked accounts
     const { data: servers, error } = await supabase
-      .from("servers")
-      .select("id, name, description, is_active")
-      .eq("is_active", true)
-      .order("id");
+      .from("UsernameLinks")
+      .select("server_id")
+      .order("server_id");
 
     if (error) {
       console.error("Error fetching servers:", error);
@@ -23,7 +24,15 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(servers);
+    const uniqueServers = [...new Set(servers.map((s) => s.server_id))];
+    const serverList = uniqueServers.map((serverId) => ({
+      id: serverId,
+      name: `Server ${serverId}`,
+      description: `CNQR Server ${serverId}`,
+      active: true,
+    }));
+
+    return NextResponse.json(serverList);
   } catch (error) {
     console.error("Error in servers API:", error);
     return NextResponse.json(
