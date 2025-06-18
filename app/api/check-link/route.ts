@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from("UsernameLinks")
       .select("username")
       .eq("discord_id", discordId)

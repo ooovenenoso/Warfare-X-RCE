@@ -235,7 +235,12 @@ export async function POST(request: Request) {
     }
 
     // Add credits to user's balance in the game database
-    const { data: linkedAccount } = await fetchLinked(transaction.discord_id)
+    const { data: linkedAccount } = await supabase
+      .from("username_links")
+      .select("username")
+      .eq("discord_id", transaction.discord_id)
+      .eq("server_id", transaction.server_id)
+      .single()
 
     if (linkedAccount) {
       console.log("👤 Found linked account:", linkedAccount.username)

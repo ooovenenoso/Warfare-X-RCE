@@ -102,20 +102,17 @@ export async function POST(request: NextRequest) {
     })
 
     // Create pending transaction record
-    const { error: transactionError } = await supabase
-      .from("store_transactions")
-      .insert({
-        package_id: packageId,
-        user_id: userId,
-        discord_id: finalDiscordId,
-        server_id: serverId || "default",
-        stripe_session_id: session.id,
-        base_amount: package_data.base_price || package_data.current_price,
-        final_amount: package_data.current_price || package_data.base_price,
-        credits_purchased: package_data.credits,
-        status: "pending",
-        payment_status: "pending",
-      })
+    const { error: transactionError } = await supabase.from("store_transactions").insert({
+      package_id: packageId,
+      discord_id: discordId || "unknown",
+      server_id: serverId || "default",
+      stripe_session_id: session.id,
+      base_amount: package_data.base_price || package_data.current_price,
+      final_amount: package_data.current_price || package_data.base_price,
+      credits_purchased: package_data.credits,
+      status: "pending",
+      payment_status: "pending",
+    })
 
     if (transactionError) {
       console.error("Error creating transaction:", transactionError)
