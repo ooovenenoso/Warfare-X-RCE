@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
     // Get user's transactions
     const { data: transactions, error } = await supabase
-      .from("transactions")
+      .from("store_transactions")
       .select(`
         *,
         credit_packages (

@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Create pending transaction record
-    const { error: transactionError } = await supabase.from("transactions").insert({
+    const { error: transactionError } = await supabase.from("store_transactions").insert({
       package_id: packageId,
       discord_id: discordId || "unknown",
       server_id: serverId || "default",

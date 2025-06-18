@@ -131,7 +131,7 @@ export async function POST(request: Request) {
 
     // Check if this session has already been processed
     const { data: existingTransaction } = await supabase
-      .from("transactions")
+      .from("store_transactions")
       .select("*")
       .eq("stripe_session_id", sessionId)
       .eq("status", "completed")
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
 
     // Get the transaction from our database
     const { data: transaction, error: transactionError } = await supabase
-      .from("transactions")
+      .from("store_transactions")
       .select("*")
       .eq("stripe_session_id", sessionId)
       .single()
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
     // Update transaction status to completed
     const newFinalAmount = (session.amount_total || 0) / 100
     const { error: updateError } = await supabase
-      .from("transactions")
+      .from("store_transactions")
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
