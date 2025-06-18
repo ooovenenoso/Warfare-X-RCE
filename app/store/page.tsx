@@ -306,7 +306,6 @@ export default function StorePage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          discordId: discordId,
           serverId: selectedServer,
         }),
       })
