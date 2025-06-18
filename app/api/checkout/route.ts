@@ -1,11 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+)
 
 export async function POST(request: NextRequest) {
   try {
     const { packageId, serverId, discordId } = await request.json()
+
+    const sessionClient = createRouteHandlerClient({ cookies })
+    const {
+      data: { user },
+    } = await sessionClient.auth.getUser()
+
+    const sessionDiscordId = user?.user_metadata?.provider_id || user?.user_metadata?.sub || user?.id
+    const userId = user?.id || null
+
+    const finalDiscordId = discordId || sessionDiscordId || "unknown"
 
     if (!packageId || !serverId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -80,7 +95,7 @@ export async function POST(request: NextRequest) {
       cancel_url: `${request.nextUrl.origin}/store`,
       metadata: {
         packageId,
-        discordId: discordId || "unknown",
+        discordId: finalDiscordId,
         serverId: serverId || "default",
         credits: package_data.credits.toString(),
       },

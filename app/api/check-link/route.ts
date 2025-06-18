@@ -38,6 +38,15 @@ export async function POST(request: Request) {
       .eq("server_id", serverId)
       .single()
 
+    if (error) {
+      ;({ data, error } = await supabase
+        .from("username_links")
+        .select("username")
+        .eq("discord_id", discordId)
+        .eq("server_id", serverId)
+        .single())
+    }
+
     if (error || !data) {
       console.warn(`No link found for discordId: ${discordId} on server: ${serverId}`, error)
       return NextResponse.json({ isLinked: false, username: null })

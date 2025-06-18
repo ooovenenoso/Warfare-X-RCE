@@ -1,0 +1,68 @@
+name: Notify Discord on Merge
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  send-discord-webhook:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare payload data
+        id: payload
+        run: |
+          # Extract necessary details from the GitHub context
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          MERGE_COMMIT_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          MERGE_COMMIT_URL="https://github.com/${{ github.repository }}/commit/${MERGE_COMMIT_SHA}"
+          REPO_NAME="${{ github.repository }}"
+          TIMESTAMP=$(date --utc +'%Y-%m-%dT%H:%M:%SZ')
+
+          # Construct a Discord embed as JSON
+          cat <<EOF > payload.json
+          {
+            "username": "GitHub Merge Bot",
+            "avatar_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+            "embeds": [
+              {
+                "title": "PR #${PR_NUMBER} merged in ${REPO_NAME}",
+                "url": "${PR_URL}",
+                "color": 5814783,
+                "fields": [
+                  {
+                    "name": "Pull Request",
+                    "value": "[#${PR_NUMBER} ${PR_TITLE}](${PR_URL})",
+                    "inline": false
+                  },
+                  {
+                    "name": "Author",
+                    "value": "${PR_AUTHOR}",
+                    "inline": true
+                  },
+                  {
+                    "name": "Merge Commit",
+                    "value": "[\`${MERGE_COMMIT_SHA:0:7}\`](${MERGE_COMMIT_URL})",
+                    "inline": true
+                  }
+                ],
+                "footer": {
+                  "text": "Repository: ${REPO_NAME}",
+                  "icon_url": "https://github.githubassets.com/favicon.ico"
+                },
+                "timestamp": "${TIMESTAMP}"
+              }
+            ]
+          }
+          EOF
+
+      - name: Send embed to Discord
+        run: |
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d @payload.json \
+               "https://discord.com/api/webhooks/1380291558053511238/k1rYYg345bySmtugs7Kxm5TYO6Wm9WISDP3sr5IPTK9J59WEuTE7x3Iheq_mCH1hQkKP"
