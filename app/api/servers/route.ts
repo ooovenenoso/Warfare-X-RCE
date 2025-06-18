@@ -1,0 +1,30 @@
+import { NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+export async function GET() {
+  try {
+    // Obtener todos los servidores únicos desde UsernameLinks
+    const { data: servers, error } = await supabase.from("UsernameLinks").select("server_id").order("server_id")
+
+    if (error) {
+      console.error("Error fetching servers:", error)
+      return NextResponse.json({ error: "Failed to fetch servers" }, { status: 500 })
+    }
+
+    // Obtener servidores únicos y crear objetos con información básica
+    const uniqueServers = [...new Set(servers.map((s) => s.server_id))]
+    const serverList = uniqueServers.map((serverId) => ({
+      id: serverId,
+      name: `Server ${serverId}`,
+      description: `CNQR Server ${serverId}`,
+      active: true,
+    }))
+
+    return NextResponse.json(serverList)
+  } catch (error) {
+    console.error("Error in servers API:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
