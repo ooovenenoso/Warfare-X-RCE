@@ -173,6 +173,18 @@ export async function POST(request: Request) {
 
     console.log("📦 Found transaction:", transaction.id)
 
+    // If the stored discord_id is missing, try to recover it from session metadata
+    if (!transaction.discord_id || transaction.discord_id === "unknown") {
+      const metaDiscord = (session.metadata as any)?.discordId
+      if (metaDiscord) {
+        transaction.discord_id = metaDiscord
+        await supabase
+          .from("store_transactions")
+          .update({ discord_id: metaDiscord })
+          .eq("id", transaction.id)
+      }
+    }
+
     // Get package details
     const { data: packageData } = await supabase
       .from("credit_packages")
@@ -203,13 +215,27 @@ export async function POST(request: Request) {
       console.log("✅ Transaction updated to completed")
     }
 
+    // Helper to fetch a linked username from either possible table name
+    async function fetchLinked(discordId: string) {
+      let { data, error } = await supabase
+        .from("UsernameLinks")
+        .select("username")
+        .eq("discord_id", discordId)
+        .eq("server_id", transaction.server_id)
+        .single()
+      if (error) {
+        ;({ data, error } = await supabase
+          .from("username_links")
+          .select("username")
+          .eq("discord_id", discordId)
+          .eq("server_id", transaction.server_id)
+          .single())
+      }
+      return { data, error }
+    }
+
     // Add credits to user's balance in the game database
-    const { data: linkedAccount } = await supabase
-      .from("username_links")
-      .select("username")
-      .eq("discord_id", transaction.discord_id)
-      .eq("server_id", transaction.server_id)
-      .single()
+    const { data: linkedAccount } = await fetchLinked(transaction.discord_id)
 
     if (linkedAccount) {
       console.log("👤 Found linked account:", linkedAccount.username)
