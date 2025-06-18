@@ -47,7 +47,18 @@ export default function TransactionsPage() {
       }
 
       const data = await response.json()
-      setTransactions(data.transactions || [])
+      const mapped = (data.transactions || []).map((t: any) => ({
+        id: t.id,
+        package_id: t.package_id,
+        amount: t.final_amount,
+        credits: t.credits_purchased,
+        server_id: t.server_id,
+        status: t.status,
+        created_at: t.created_at,
+        completed_at: t.completed_at,
+        credit_packages: t.credit_packages,
+      }))
+      setTransactions(mapped)
     } catch (error) {
       console.error("Error fetching transactions:", error)
       setError("Failed to load transaction history")
