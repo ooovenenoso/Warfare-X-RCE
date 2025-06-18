@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
   try {
     const { data, error } = await supabase
-      .from("username_links")
+      .from("UsernameLinks")
       .select("username")
       .eq("discord_id", discordId)
       .eq("server_id", serverId)
