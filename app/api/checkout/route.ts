@@ -27,6 +27,16 @@ export async function POST(request: NextRequest) {
       sessionUser.id
     const userId = sessionUser.id
 
+    const sessionClient = createRouteHandlerClient({ cookies })
+    const {
+      data: { user },
+    } = await sessionClient.auth.getUser()
+
+    const sessionDiscordId = user?.user_metadata?.provider_id || user?.user_metadata?.sub || user?.id
+    const userId = user?.id || null
+
+    const finalDiscordId = discordId || sessionDiscordId || "unknown"
+
     if (!packageId || !serverId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }

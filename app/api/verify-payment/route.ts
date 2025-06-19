@@ -173,6 +173,18 @@ export async function POST(request: Request) {
 
     console.log("📦 Found transaction:", transaction.id)
 
+    // If the stored discord_id is missing, try to recover it from session metadata
+    if (!transaction.discord_id || transaction.discord_id === "unknown") {
+      const metaDiscord = (session.metadata as any)?.discordId
+      if (metaDiscord) {
+        transaction.discord_id = metaDiscord
+        await supabase
+          .from("store_transactions")
+          .update({ discord_id: metaDiscord })
+          .eq("id", transaction.id)
+      }
+    }
+
     // Get package details
     const { data: packageData } = await supabase
       .from("credit_packages")
@@ -203,6 +215,25 @@ export async function POST(request: Request) {
       console.log("✅ Transaction updated to completed")
     }
 
+    // Helper to fetch a linked username from either possible table name
+    async function fetchLinked(discordId: string) {
+      let { data, error } = await supabase
+        .from("UsernameLinks")
+        .select("username")
+        .eq("discord_id", discordId)
+        .eq("server_id", transaction.server_id)
+        .single()
+      if (error) {
+        ;({ data, error } = await supabase
+          .from("username_links")
+          .select("username")
+          .eq("discord_id", discordId)
+          .eq("server_id", transaction.server_id)
+          .single())
+      }
+      return { data, error }
+    }
+
     // Add credits to user's balance in the game database
     let { data: linkedAccount } = await supabase
       .from("UsernameLinks")
@@ -227,7 +258,7 @@ export async function POST(request: Request) {
 
       // Get current balance
       const { data: balanceData } = await supabase
-        .from("EconomyBalance")
+        .from("economy_balance")
         .select("*")
         .eq("server_id", transaction.server_id)
         .eq("player_name", linkedAccount.username)
@@ -237,7 +268,7 @@ export async function POST(request: Request) {
         // Update balance
         const newBalance = balanceData.balance + transaction.credits_purchased
         await supabase
-          .from("EconomyBalance")
+          .from("economy_balance")
           .update({
             balance: newBalance,
             total_earned: balanceData.total_earned + transaction.credits_purchased,
@@ -248,7 +279,7 @@ export async function POST(request: Request) {
         console.log(`💰 Updated balance: ${balanceData.balance} + ${transaction.credits_purchased} = ${newBalance}`)
       } else {
         // Create new balance record
-        await supabase.from("EconomyBalance").insert({
+        await supabase.from("economy_balance").insert({
           server_id: transaction.server_id,
           player_name: linkedAccount.username,
           balance: transaction.credits_purchased,
