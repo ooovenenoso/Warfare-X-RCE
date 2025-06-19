@@ -1,11 +1,31 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+)
 
 export async function POST(request: NextRequest) {
   try {
-    const { packageId, serverId, discordId } = await request.json()
+    const { packageId, serverId } = await request.json()
+
+    const sessionClient = createRouteHandlerClient({ cookies })
+    const {
+      data: { user: sessionUser },
+    } = await sessionClient.auth.getUser()
+
+    if (!sessionUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const discordId =
+      sessionUser.user_metadata?.provider_id ||
+      sessionUser.user_metadata?.sub ||
+      sessionUser.id
+    const userId = sessionUser.id
 
     if (!packageId || !serverId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -49,7 +69,7 @@ export async function POST(request: NextRequest) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
     // Fetch package details
-    const { data: package_data, error: packageError } = await supabase
+    const { data: package_data, error: packageError } = await supabaseAdmin
       .from("credit_packages")
       .select("*")
       .eq("id", packageId)
@@ -80,24 +100,27 @@ export async function POST(request: NextRequest) {
       cancel_url: `${request.nextUrl.origin}/store`,
       metadata: {
         packageId,
-        discordId: discordId || "unknown",
+        discordId,
         serverId: serverId || "default",
         credits: package_data.credits.toString(),
       },
     })
 
     // Create pending transaction record
-    const { error: transactionError } = await supabase.from("transactions").insert({
-      package_id: packageId,
-      discord_id: discordId || "unknown",
-      server_id: serverId || "default",
-      stripe_session_id: session.id,
-      base_amount: package_data.base_price || package_data.current_price,
-      final_amount: package_data.current_price || package_data.base_price,
-      credits_purchased: package_data.credits,
-      status: "pending",
-      payment_status: "pending",
-    })
+    const { error: transactionError } = await supabaseAdmin
+      .from("store_transactions")
+      .insert({
+        package_id: packageId,
+        discord_id: discordId,
+        user_id: userId,
+        server_id: serverId || "default",
+        stripe_session_id: session.id,
+        base_amount: package_data.base_price || package_data.current_price,
+        final_amount: package_data.current_price || package_data.base_price,
+        credits_purchased: package_data.credits,
+        status: "pending",
+        payment_status: "pending",
+      })
 
     if (transactionError) {
       console.error("Error creating transaction:", transactionError)

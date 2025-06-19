@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 
     // Get transactions with package details and user info
     const { data, error, count } = await supabase
-      .from("transactions")
+      .from("store_transactions")
       .select(
         `
         *,
