@@ -17,7 +17,9 @@ export async function POST(request: Request) {
   } = await supabaseSession.auth.getUser()
 
   const sessionDiscordId =
-    sessionUser?.user_metadata?.provider_id || sessionUser?.user_metadata?.sub
+    sessionUser?.user_metadata?.provider_id ||
+    sessionUser?.user_metadata?.sub ||
+    sessionUser?.id
   const discordId = bodyDiscordId || sessionDiscordId
 
   if (!discordId) {
