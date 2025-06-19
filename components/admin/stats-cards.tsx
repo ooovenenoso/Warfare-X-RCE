@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DollarSign, Users, CreditCard, TrendingUp } from "lucide-react"
+import { Loader } from "@/components/loader"
 
 interface AdminStats {
   totalRevenue: number
@@ -17,15 +18,19 @@ export function StatsCards() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      // In a real app, this would be an API call to a secure endpoint
-      // For now, we'll use mock data
-      setStats({
-        totalRevenue: 15420.5,
-        totalTransactions: 342,
-        activeUsers: 1250,
-        conversionRate: 12.5,
-      })
-      setLoading(false)
+      try {
+        const response = await fetch("/api/admin/stats")
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data)
+        } else {
+          console.error("Failed to fetch stats")
+        }
+      } catch (error) {
+        console.error("Error fetching stats:", error)
+      } finally {
+        setLoading(false)
+      }
     }
     fetchStats()
   }, [])
@@ -64,6 +69,22 @@ export function StatsCards() {
       bgColor: "bg-orange-500",
     },
   ]
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="bg-gray-900 border-gray-800">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-center h-20">
+                <Loader size="sm" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">

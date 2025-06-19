@@ -5,48 +5,24 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Package, Activity, Percent, MessageCircle, Settings, TrendingDown, BarChart3, TrendingUp } from "lucide-react"
+import { Package, Activity, Percent, MessageCircle, Settings } from "lucide-react"
 import { StatsCards } from "@/components/admin/stats-cards"
 import { RevenueChart } from "@/components/admin/revenue-chart"
 import { PackagesClient } from "./packages-client"
 import { TransactionsClient } from "./transactions-client"
+import { createClient } from "@supabase/supabase-js"
 
 const ADMIN_DISCORD_IDS = process.env.NEXT_PUBLIC_ADMIN_DISCORD_IDS?.split(",") || [
   "907231041167716352",
   "1068270434702860358",
 ]
 
-const priceModes = {
-  low_pop: {
-    name: "Low Pop Mode",
-    description: "50% discount on all packages",
-    icon: TrendingDown,
-    color: "text-green-400",
-    bgColor: "bg-green-500",
-    borderColor: "border-green-500",
-  },
-  normal: {
-    name: "Normal Mode",
-    description: "Standard pricing",
-    icon: BarChart3,
-    color: "text-blue-400",
-    bgColor: "bg-blue-500",
-    borderColor: "border-blue-500",
-  },
-  high_season: {
-    name: "High Season Mode",
-    description: "15% increase on all packages",
-    icon: TrendingUp,
-    color: "text-orange-400",
-    bgColor: "bg-orange-500",
-    borderColor: "border-orange-500",
-  },
-}
-
 export const dynamic = "force-dynamic"
 
 export default async function AdminPage() {
   const supabase = createServerComponentClient({ cookies })
+  const adminSupabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -58,13 +34,30 @@ export default async function AdminPage() {
     redirect("/")
   }
 
-  // Fetch initial data for the page
-  const { data: packagesData } = await supabase.from("credit_packages").select("*").order("sort_order")
-  const { data: transactionsData, count: transactionCount } = await supabase
-    .from("transaction_summary")
-    .select("*", { count: "exact" })
+  // Fetch initial data for the page using admin client
+  const { data: packagesData } = await adminSupabase.from("credit_packages").select("*").order("sort_order")
+
+  // Fetch real transactions from store_transactions table
+  const { data: transactionsData, count: transactionCount } = await adminSupabase
+    .from("store_transactions")
+    .select(`
+      *,
+      credit_packages(name)
+    `)
+    .eq("status", "completed")
     .order("created_at", { ascending: false })
     .range(0, 9)
+
+  // Transform transaction data to match the expected format
+  const transformedTransactions =
+    transactionsData?.map((transaction) => ({
+      transaction_number: `TXN-${transaction.id.slice(-8)}`,
+      username: transaction.discord_id,
+      package_name: transaction.credit_packages?.name || "Unknown Package",
+      final_amount: transaction.final_amount,
+      status: transaction.status,
+      created_at: transaction.created_at,
+    })) || []
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-950">
@@ -86,7 +79,32 @@ export default async function AdminPage() {
           <div className="lg:col-span-3">
             <RevenueChart />
           </div>
-          <div className="lg:col-span-2">{/* Pricing component can go here */}</div>
+          <div className="lg:col-span-2">
+            <Card className="bg-gray-900 border-gray-800 h-full">
+              <CardHeader>
+                <CardTitle className="text-white">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-semibold text-white mb-2">System Status</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Stripe Integration:</span>
+                      <span className={process.env.STRIPE_SECRET_KEY ? "text-green-400" : "text-yellow-400"}>
+                        {process.env.STRIPE_SECRET_KEY ? "Active" : "Demo Mode"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Discord Webhook:</span>
+                      <span className={process.env.DISCORD_WEBHOOK_URL ? "text-green-400" : "text-red-400"}>
+                        {process.env.DISCORD_WEBHOOK_URL ? "Configured" : "Not Set"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <Tabs defaultValue="packages" className="w-full">
@@ -115,7 +133,7 @@ export default async function AdminPage() {
 
           <TabsContent value="transactions">
             <TransactionsClient
-              initialTransactions={transactionsData || []}
+              initialTransactions={transformedTransactions}
               initialTransactionCount={transactionCount || 0}
             />
           </TabsContent>
@@ -132,7 +150,6 @@ export default async function AdminPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Pricing client component will go here */}
                 <p className="text-gray-400">Pricing management UI coming soon.</p>
               </CardContent>
             </Card>
@@ -150,7 +167,6 @@ export default async function AdminPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Webhook client component will go here */}
                 <p className="text-gray-400">Webhook testing UI coming soon.</p>
               </CardContent>
             </Card>
