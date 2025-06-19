@@ -217,6 +217,7 @@ export default function StorePage() {
       const response = await fetch("/api/current-mode", {
         cache: "no-store",
         signal: controller.signal,
+        credentials: "include",
       })
 
       clearTimeout(timeoutId)
@@ -240,6 +241,7 @@ export default function StorePage() {
         headers: {
           "Cache-Control": "no-cache",
         },
+        credentials: "include",
         signal: controller.signal,
       })
 
@@ -271,6 +273,7 @@ export default function StorePage() {
 
       const response = await fetch("/api/servers", {
         signal: controller.signal,
+        credentials: "include",
       })
 
       clearTimeout(timeoutId)
@@ -305,6 +308,7 @@ export default function StorePage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           serverId: selectedServer,
         }),
@@ -359,6 +363,7 @@ export default function StorePage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           packageId: selectedPackage.id,
           serverId: selectedServer,
