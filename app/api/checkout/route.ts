@@ -12,10 +12,10 @@ export async function POST(request: NextRequest) {
   try {
     const { packageId, serverId } = await request.json()
 
-    const sessionClient = createRouteHandlerClient({ cookies })
+    const supabaseSession = createRouteHandlerClient({ cookies })
     const {
       data: { user: sessionUser },
-    } = await sessionClient.auth.getUser()
+    } = await supabaseSession.auth.getUser()
 
     if (!sessionUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -26,16 +26,6 @@ export async function POST(request: NextRequest) {
       sessionUser.user_metadata?.sub ||
       sessionUser.id
     const userId = sessionUser.id
-
-    const sessionClient = createRouteHandlerClient({ cookies })
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    const sessionDiscordId = user?.user_metadata?.provider_id || user?.user_metadata?.sub || user?.id
-    const userId = user?.id || null
-
-    const finalDiscordId = discordId || sessionDiscordId || "unknown"
 
     if (!packageId || !serverId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
