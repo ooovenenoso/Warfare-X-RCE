@@ -8,11 +8,11 @@ export async function GET(request: Request) {
 
     // Get the current user
     const {
-      data: { user },
+      data: { user: sessionUser },
       error: userError,
     } = await supabase.auth.getUser()
 
-    if (userError || !user) {
+    if (userError || !sessionUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -26,7 +26,10 @@ export async function GET(request: Request) {
           credits
         )
       `)
-      .eq("discord_id", user.user_metadata?.provider_id || user.id)
+      .eq(
+        "discord_id",
+        sessionUser.user_metadata?.provider_id || sessionUser.id,
+      )
       .order("created_at", { ascending: false })
 
     if (error) {

@@ -11,10 +11,21 @@ export async function GET() {
   try {
     // Fetch unique server IDs from UsernameLinks so players only see
     // servers that have linked accounts
-    const { data: servers, error } = await supabase
+    let { data: servers, error } = await supabase
       .from("UsernameLinks")
       .select("server_id")
       .order("server_id");
+
+    if (error) {
+      // Fallback to lowercase table name if PascalCase is missing
+      const { data: lowerServers, error: lowerError } = await supabase
+        .from("username_links")
+        .select("server_id")
+        .order("server_id");
+
+      servers = lowerServers || [];
+      error = lowerError;
+    }
 
     if (error) {
       console.error("Error fetching servers:", error);

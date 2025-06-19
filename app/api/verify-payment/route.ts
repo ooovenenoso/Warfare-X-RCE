@@ -235,12 +235,23 @@ export async function POST(request: Request) {
     }
 
     // Add credits to user's balance in the game database
-    const { data: linkedAccount } = await supabase
-      .from("username_links")
+    let { data: linkedAccount } = await supabase
+      .from("UsernameLinks")
       .select("username")
       .eq("discord_id", transaction.discord_id)
       .eq("server_id", transaction.server_id)
       .single()
+
+    if (!linkedAccount) {
+      const { data: lowerAccount } = await supabase
+        .from("username_links")
+        .select("username")
+        .eq("discord_id", transaction.discord_id)
+        .eq("server_id", transaction.server_id)
+        .single()
+
+      linkedAccount = lowerAccount as any
+    }
 
     if (linkedAccount) {
       console.log("👤 Found linked account:", linkedAccount.username)
@@ -281,14 +292,15 @@ export async function POST(request: Request) {
         console.log(`💰 Created new balance: ${transaction.credits_purchased}`)
       }
 
-      // Log transaction in EconomyTransactions
-      await supabase.from("economy_transactions").insert({
+      // Record transaction in EconomyTransactions for history
+      await supabase.from("EconomyTransactions").insert({
         server_id: transaction.server_id,
-        sender: "Store",
+        sender: null,
         receiver: linkedAccount.username,
         amount: transaction.credits_purchased,
-        transaction_type: "store_purchase",
-        description: `Credits purchased from store - Package: ${packageData?.name || "Unknown"}`,
+        transaction_type: "credit_purchase",
+        description: `Purchased ${transaction.credits_purchased} credits via store`,
+        reference_id: transaction.id,
         timestamp: new Date().toISOString(),
       })
 

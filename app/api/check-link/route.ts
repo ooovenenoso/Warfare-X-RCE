@@ -13,10 +13,11 @@ export async function POST(request: Request) {
   const { serverId, discordId: bodyDiscordId } = await request.json()
 
   const {
-    data: { user },
+    data: { user: sessionUser },
   } = await supabaseSession.auth.getUser()
 
-  const sessionDiscordId = user?.user_metadata?.provider_id || user?.user_metadata?.sub
+  const sessionDiscordId =
+    sessionUser?.user_metadata?.provider_id || sessionUser?.user_metadata?.sub
   const discordId = bodyDiscordId || sessionDiscordId
 
   if (!discordId) {
@@ -31,7 +32,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { data, error } = await supabase
+    // Attempt lookup in PascalCase table first
+    let { data, error } = await supabase
       .from("UsernameLinks")
       .select("username")
       .eq("discord_id", discordId)
@@ -48,7 +50,19 @@ export async function POST(request: Request) {
     }
 
     if (error || !data) {
-      console.warn(`No link found for discordId: ${discordId} on server: ${serverId}`, error)
+      // Fallback to lowercase table name if not found
+      const { data: lowerData } = await supabase
+        .from("username_links")
+        .select("username")
+        .eq("discord_id", discordId)
+        .eq("server_id", serverId)
+        .single()
+
+      data = lowerData as any
+    }
+
+    if (!data) {
+      console.warn(`No link found for discordId: ${discordId} on server: ${serverId}`)
       return NextResponse.json({ isLinked: false, username: null })
     }
 
