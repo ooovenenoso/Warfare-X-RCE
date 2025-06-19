@@ -28,7 +28,7 @@ export function HeroSection() {
           </div>
 
           {/* Main Heading */}
-          <h2 className="text-4xl md:text-6xl font-bold mb-6 text-white">Level Up Your Game</h2>
+          <h2 className="text-4xl md:text-6xl font-bold mb-6 text-white">Your Game, Levelled Up</h2>
 
           <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
             Purchase premium credits and unlock exclusive features, items, and perks across all CNQR gaming servers
