@@ -1,11 +1,9 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "CNQR Store - Premium Gaming Credits",
@@ -27,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-gray-950`} suppressHydrationWarning>
+      <body className="bg-gray-950" suppressHydrationWarning>
         <AuthProvider>{children}</AuthProvider>
         <Toaster />
       </body>

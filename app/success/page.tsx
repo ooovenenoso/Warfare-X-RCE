@@ -38,6 +38,7 @@ export default function SuccessPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ sessionId }),
       })
 
