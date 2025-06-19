@@ -178,10 +178,7 @@ export async function POST(request: Request) {
       const metaDiscord = (session.metadata as any)?.discordId
       if (metaDiscord) {
         transaction.discord_id = metaDiscord
-        await supabase
-          .from("store_transactions")
-          .update({ discord_id: metaDiscord })
-          .eq("id", transaction.id)
+        await supabase.from("store_transactions").update({ discord_id: metaDiscord }).eq("id", transaction.id)
       }
     }
 
@@ -215,50 +212,20 @@ export async function POST(request: Request) {
       console.log("✅ Transaction updated to completed")
     }
 
-    // Helper to fetch a linked username from either possible table name
-    async function fetchLinked(discordId: string) {
-      let { data, error } = await supabase
-        .from("UsernameLinks")
-        .select("username")
-        .eq("discord_id", discordId)
-        .eq("server_id", transaction.server_id)
-        .single()
-      if (error) {
-        ;({ data, error } = await supabase
-          .from("username_links")
-          .select("username")
-          .eq("discord_id", discordId)
-          .eq("server_id", transaction.server_id)
-          .single())
-      }
-      return { data, error }
-    }
-
     // Add credits to user's balance in the game database
-    let { data: linkedAccount } = await supabase
+    const { data: linkedAccount } = await supabase
       .from("UsernameLinks")
       .select("username")
       .eq("discord_id", transaction.discord_id)
       .eq("server_id", transaction.server_id)
       .single()
 
-    if (!linkedAccount) {
-      const { data: lowerAccount } = await supabase
-        .from("username_links")
-        .select("username")
-        .eq("discord_id", transaction.discord_id)
-        .eq("server_id", transaction.server_id)
-        .single()
-
-      linkedAccount = lowerAccount as any
-    }
-
     if (linkedAccount) {
       console.log("👤 Found linked account:", linkedAccount.username)
 
       // Get current balance
       const { data: balanceData } = await supabase
-        .from("economy_balance")
+        .from("EconomyBalance")
         .select("*")
         .eq("server_id", transaction.server_id)
         .eq("player_name", linkedAccount.username)
@@ -268,7 +235,7 @@ export async function POST(request: Request) {
         // Update balance
         const newBalance = balanceData.balance + transaction.credits_purchased
         await supabase
-          .from("economy_balance")
+          .from("EconomyBalance")
           .update({
             balance: newBalance,
             total_earned: balanceData.total_earned + transaction.credits_purchased,
@@ -279,7 +246,7 @@ export async function POST(request: Request) {
         console.log(`💰 Updated balance: ${balanceData.balance} + ${transaction.credits_purchased} = ${newBalance}`)
       } else {
         // Create new balance record
-        await supabase.from("economy_balance").insert({
+        await supabase.from("EconomyBalance").insert({
           server_id: transaction.server_id,
           player_name: linkedAccount.username,
           balance: transaction.credits_purchased,
@@ -292,15 +259,14 @@ export async function POST(request: Request) {
         console.log(`💰 Created new balance: ${transaction.credits_purchased}`)
       }
 
-      // Record transaction in EconomyTransactions for history
+      // Log transaction in EconomyTransactions
       await supabase.from("EconomyTransactions").insert({
         server_id: transaction.server_id,
-        sender: null,
+        sender: "Store",
         receiver: linkedAccount.username,
         amount: transaction.credits_purchased,
-        transaction_type: "credit_purchase",
-        description: `Purchased ${transaction.credits_purchased} credits via store`,
-        reference_id: transaction.id,
+        transaction_type: "store_purchase",
+        description: `Credits purchased from store - Package: ${packageData?.name || "Unknown"}`,
         timestamp: new Date().toISOString(),
       })
 
