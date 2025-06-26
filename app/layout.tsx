@@ -1,20 +1,16 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { Inter } from "next/font/google"
 import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
 
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "CNQR Store - Premium Gaming Credits",
-  description: "Buy premium gaming credits for CNQR servers. Instant delivery, secure payments.",
-  keywords: "gaming, credits, minecraft, server, premium, cnqr",
-  authors: [{ name: "CNQR Team" }],
-  openGraph: {
-    title: "CNQR Store - Premium Gaming Credits",
-    description: "Buy premium gaming credits for CNQR servers. Instant delivery, secure payments.",
-    type: "website",
-  },
+  title: "CNQR Credits Store",
+  description: "Buy credits for CNQR servers",
     generator: 'v0.dev'
 }
 
@@ -25,9 +21,27 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-gray-950" suppressHydrationWarning>
-        <AuthProvider>{children}</AuthProvider>
-        <Toaster />
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Suppress ResizeObserver errors
+              window.addEventListener('error', function(e) {
+                if (e.message && e.message.includes('ResizeObserver loop completed with undelivered notifications')) {
+                  e.stopImmediatePropagation();
+                }
+              });
+            `,
+          }}
+        />
+      </head>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

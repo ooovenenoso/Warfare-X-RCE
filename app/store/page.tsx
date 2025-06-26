@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useToast } from "@/components/ui/use-toast"
+import { useResizeObserverErrorHandler } from "@/hooks/use-resize-observer-error-handler"
 import { Loader } from "@/components/loader"
 
 interface CreditPackage {
@@ -167,6 +168,8 @@ const comingSoonFeatures = [
 export default function StorePage() {
   const { user, signInWithDiscord } = useAuth()
   const { toast } = useToast()
+  useResizeObserverErrorHandler()
+
   const [packages, setPackages] = useState<CreditPackage[]>(mockPackagesData)
   const [servers, setServers] = useState<Server[]>(mockServers)
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null)
@@ -214,7 +217,7 @@ export default function StorePage() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000)
 
-      const response = await fetch("/api/current-mode", {
+      const response = await fetch("/api/price-mode", {
         cache: "no-store",
         signal: controller.signal,
         credentials: "include",
@@ -455,11 +458,11 @@ export default function StorePage() {
 
         {/* Hero Section */}
         <div className="text-center mb-8 md:mb-12 sigma-slide-in">
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-black mb-4 md:mb-6 bg-gradient-to-r from-primary via-white to-primary bg-clip-text text-transparent">
-            CNQR STORE
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-black mb-4 md:mb-6 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 bg-clip-text text-transparent">
+            WARFARE STORE
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-            Buy credits, spend them on exclusive items, and dominate across all CNQR servers
+            Buy credits, spend them on exclusive items, and dominate across all Warfare servers
           </p>
 
           {/* Feature Icons - Mobile First */}

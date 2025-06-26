@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Image from "next/image"
 
 export function Navbar() {
   const { user, signInWithDiscord, signOut, isLoading, isAdmin } = useAuth()
@@ -80,12 +81,17 @@ export function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="text-2xl font-bold bg-gradient-to-r from-primary via-purple-500 to-primary bg-clip-text text-transparent">
-              CNQR
+          <Link href="/" className="flex items-center space-x-3">
+            <div className="relative w-10 h-10 rounded-lg p-1.5">
+              <Image src="/warfare-logo.png" alt="Warfare Logo" fill className="object-contain" />
             </div>
-            <div className="hidden sm:block w-px h-6 bg-gray-600" />
-            <div className="hidden sm:block text-sm text-gray-400 font-medium">Credits Store</div>
+            <div className="flex items-center space-x-2">
+              <div className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 bg-clip-text text-transparent">
+                WARFARE
+              </div>
+              <div className="hidden sm:block w-px h-6 bg-gray-600" />
+              <div className="hidden sm:block text-sm text-gray-400 font-medium">Credits Store</div>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
