@@ -20,6 +20,7 @@ interface GameStats {
 
 const GRID_SIZE = 50 // 50x50 grid
 const COOLDOWN_TIME = 30 // 30 seconds cooldown
+const REFRESH_INTERVAL = 2000 // 2 seconds for live updates
 
 export default function PixelWar() {
   const [pixels, setPixels] = useState<PixelData[]>([])
@@ -38,22 +39,21 @@ export default function PixelWar() {
     builder_kit: "FullBuilderKit",
   }
 
-  const kitDetails = {
-    welcome_kit: {
-      name: "FullPvPKit",
-      color: "#3B82F6",
-    },
-    builder_kit: {
-      name: "FullBuilderKit",
-      color: "#EF4444",
-    },
-  }
-
   // Load initial pixel data
   useEffect(() => {
     loadPixels()
     loadStats()
     checkCooldown()
+  }, [])
+
+  // Live updates - refresh every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadPixels()
+      loadStats()
+    }, REFRESH_INTERVAL)
+
+    return () => clearInterval(interval)
   }, [])
 
   // Cooldown timer
@@ -121,6 +121,7 @@ export default function PixelWar() {
       })
 
       if (response.ok) {
+        // Immediate update after placing pixel
         await loadPixels()
         await loadStats()
         setCooldownTime(COOLDOWN_TIME)
@@ -154,7 +155,7 @@ export default function PixelWar() {
           <Palette className="w-5 h-5" />
           Choose Your Welcome Kit!
         </CardTitle>
-        <p className="text-gray-300 text-sm">Which playstyle suits you? Vote with pixels!</p>
+        <p className="text-gray-300 text-sm">Vote for your preferred kit! Updates live every 2 seconds.</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Choice Selection */}
@@ -181,7 +182,7 @@ export default function PixelWar() {
           </button>
         </div>
 
-        {/* Stats */}
+        {/* Stats with live indicator */}
         <div className="flex justify-center gap-4 text-sm">
           <Badge variant="secondary" className="bg-blue-600/20 text-blue-400">
             <Users className="w-3 h-3 mr-1" />
@@ -190,6 +191,10 @@ export default function PixelWar() {
           <Badge variant="secondary" className="bg-red-600/20 text-red-400">
             <Users className="w-3 h-3 mr-1" />
             FullBuilderKit: {stats.builder_kit}
+          </Badge>
+          <Badge variant="secondary" className="bg-green-600/20 text-green-400">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-1"></div>
+            LIVE
           </Badge>
         </div>
 
@@ -244,9 +249,14 @@ export default function PixelWar() {
           </div>
         </div>
 
-        <p className="text-xs text-gray-400 text-center">
-          Vote for your preferred kit! Winners will receive a redeemable code in-game.
-        </p>
+        <div className="text-center space-y-1">
+          <p className="text-xs text-gray-400">
+            The winning kit can be redeemed with an emote in-game when the countdown ends!
+          </p>
+          <p className="text-xs text-gray-500">
+            Use <code className="bg-gray-700 px-1 rounded">/redeem</code> emote after July 4th, 2025
+          </p>
+        </div>
       </CardContent>
     </Card>
   )
