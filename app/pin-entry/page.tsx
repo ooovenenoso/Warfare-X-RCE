@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Lock, Timer } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import PixelWar from "@/components/pixel-war"
 
 export default function PinEntryPage() {
   const [pin, setPin] = useState("")
@@ -47,9 +46,8 @@ export default function PinEntryPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Add this useEffect after the countdown useEffect
+  // Track visitor on page load
   useEffect(() => {
-    // Track visitor on page load
     if (typeof window !== "undefined") {
       fetch("/api/track-visitor", { method: "POST" }).catch((error) => console.log("Visitor tracking failed:", error))
     }
@@ -142,11 +140,6 @@ export default function PinEntryPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Pixel War */}
-        <div className="mb-6">
-          <PixelWar />
-        </div>
 
         {/* PIN Entry */}
         <Card className="bg-gray-800 border-yellow-400/20">
