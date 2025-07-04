@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server"
-import Stripe from "stripe"
-import { createClient } from "@/lib/supabase"
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-})
+import { createClient } from "@supabase/supabase-js"
 
 // Function to send Discord webhook notification
 async function sendDiscordWebhook(transaction: any, packageData: any, username: string) {
@@ -99,7 +94,7 @@ export async function POST(request: Request) {
     console.log("🔍 Verifying session:", sessionId)
 
     // Create Supabase client for this request with service role key
-    const supabase = createClient()
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
     // Check if Stripe is configured
     if (!process.env.STRIPE_SECRET_KEY) {
@@ -130,24 +125,32 @@ export async function POST(request: Request) {
       })
     }
 
+    // Dynamically import Stripe only if the key is available
+    const Stripe = (await import("stripe")).default
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+
     // Check if this session has already been processed
     const { data: existingTransaction } = await supabase
-      .from("transactions")
-      .select("id")
+      .from("store_transactions")
+      .select("*")
       .eq("stripe_session_id", sessionId)
+      .eq("status", "completed")
       .single()
 
     if (existingTransaction) {
       console.log("✅ Transaction already processed:", existingTransaction.id)
       return NextResponse.json({
         success: true,
-        message: "Transaction already processed",
+        credits: existingTransaction.credits,
+        server: existingTransaction.server_id,
       })
     }
 
     // Verify the session with Stripe
     console.log("🔍 Retrieving Stripe session...")
-    const session = await stripe.checkout.sessions.retrieve(sessionId)
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["line_items", "line_items.data.price.product"],
+    })
 
     console.log("💳 Stripe session status:", session.payment_status)
     console.log("💰 Session amount:", session.amount_total)
@@ -156,36 +159,65 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Payment not completed" }, { status: 400 })
     }
 
+    // Get the transaction from our database
+    const { data: transaction, error: transactionError } = await supabase
+      .from("store_transactions")
+      .select("*")
+      .eq("stripe_session_id", sessionId)
+      .single()
+
+    if (transactionError || !transaction) {
+      console.error("❌ Transaction not found:", transactionError)
+      return NextResponse.json({ success: false, error: "Transaction not found" }, { status: 404 })
+    }
+
+    console.log("📦 Found transaction:", transaction.id)
+
+    // If the stored discord_id is missing, try to recover it from session metadata
+    if (!transaction.discord_id || transaction.discord_id === "unknown") {
+      const metaDiscord = (session.metadata as any)?.discordId
+      if (metaDiscord) {
+        transaction.discord_id = metaDiscord
+        await supabase.from("store_transactions").update({ discord_id: metaDiscord }).eq("id", transaction.id)
+      }
+    }
+
     // Get package details
-    const packageId = session.metadata?.packageId
-    const { data: packageData } = await supabase.from("packages").select("*").eq("id", packageId).single()
+    const { data: packageData } = await supabase
+      .from("credit_packages")
+      .select("*")
+      .eq("id", transaction.package_id)
+      .single()
 
     console.log("📦 Package data:", packageData)
 
-    // Create transaction record
-    const { error: transactionError } = await supabase.from("transactions").insert({
-      stripe_session_id: sessionId,
-      package_id: Number.parseInt(packageId!),
-      discord_id: session.metadata?.discordId,
-      email: session.metadata?.email,
-      amount: session.amount_total! / 100,
-      status: "completed",
-      created_at: new Date().toISOString(),
-    })
+    // Update transaction status to completed
+    const newFinalAmount = (session.amount_total || 0) / 100
+    const { error: updateError } = await supabase
+      .from("store_transactions")
+      .update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+        // Update final amount from Stripe session to ensure it's correct
+        final_amount: newFinalAmount,
+      })
+      .eq("id", transaction.id)
 
-    if (transactionError) {
-      console.error("❌ Error updating transaction:", transactionError)
-      return NextResponse.json({ success: false, error: "Failed to record transaction" }, { status: 500 })
+    // reflect updated amount locally
+    transaction.final_amount = newFinalAmount
+
+    if (updateError) {
+      console.error("❌ Error updating transaction:", updateError)
+    } else {
+      console.log("✅ Transaction updated to completed")
     }
-
-    console.log("✅ Transaction updated to completed")
 
     // Add credits to user's balance in the game database
     const { data: linkedAccount } = await supabase
       .from("UsernameLinks")
       .select("username")
-      .eq("discord_id", session.metadata?.discordId)
-      .eq("server_id", session.metadata?.serverId)
+      .eq("discord_id", transaction.discord_id)
+      .eq("server_id", transaction.server_id)
       .single()
 
     if (linkedAccount) {
@@ -195,44 +227,44 @@ export async function POST(request: Request) {
       const { data: balanceData } = await supabase
         .from("EconomyBalance")
         .select("*")
-        .eq("server_id", session.metadata?.serverId)
+        .eq("server_id", transaction.server_id)
         .eq("player_name", linkedAccount.username)
         .single()
 
       if (balanceData) {
         // Update balance
-        const newBalance = balanceData.balance + packageData?.credits
+        const newBalance = balanceData.balance + transaction.credits_purchased
         await supabase
           .from("EconomyBalance")
           .update({
             balance: newBalance,
-            total_earned: balanceData.total_earned + packageData?.credits,
+            total_earned: balanceData.total_earned + transaction.credits_purchased,
             updated_at: new Date().toISOString(),
           })
           .eq("id", balanceData.id)
 
-        console.log(`💰 Updated balance: ${balanceData.balance} + ${packageData?.credits} = ${newBalance}`)
+        console.log(`💰 Updated balance: ${balanceData.balance} + ${transaction.credits_purchased} = ${newBalance}`)
       } else {
         // Create new balance record
         await supabase.from("EconomyBalance").insert({
-          server_id: session.metadata?.serverId,
+          server_id: transaction.server_id,
           player_name: linkedAccount.username,
-          balance: packageData?.credits,
-          total_earned: packageData?.credits,
+          balance: transaction.credits_purchased,
+          total_earned: transaction.credits_purchased,
           total_spent: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
 
-        console.log(`💰 Created new balance: ${packageData?.credits}`)
+        console.log(`💰 Created new balance: ${transaction.credits_purchased}`)
       }
 
       // Log transaction in EconomyTransactions
       await supabase.from("EconomyTransactions").insert({
-        server_id: session.metadata?.serverId,
+        server_id: transaction.server_id,
         sender: "Store",
         receiver: linkedAccount.username,
-        amount: packageData?.credits,
+        amount: transaction.credits_purchased,
         transaction_type: "store_purchase",
         description: `Credits purchased from store - Package: ${packageData?.name || "Unknown"}`,
         timestamp: new Date().toISOString(),
@@ -241,28 +273,19 @@ export async function POST(request: Request) {
       // Send Discord webhook notification
       if (packageData) {
         console.log("📢 Sending Discord webhook...")
-        await sendDiscordWebhook(
-          {
-            id: "demo-transaction-" + Date.now(),
-            discord_id: session.metadata?.discordId,
-            server_id: session.metadata?.serverId,
-            final_amount: session.amount_total! / 100,
-          },
-          packageData,
-          linkedAccount.username,
-        )
+        await sendDiscordWebhook(transaction, packageData, linkedAccount.username)
       }
     } else {
-      console.warn("⚠️ No linked account found for user:", session.metadata?.discordId)
+      console.warn("⚠️ No linked account found for user:", transaction.discord_id)
     }
 
     console.log("✅ Payment verification completed successfully")
 
     return NextResponse.json({
       success: true,
-      credits: packageData?.credits,
-      server: session.metadata?.serverId,
-      amount: session.amount_total! / 100,
+      credits: transaction.credits_purchased,
+      server: transaction.server_id,
+      amount: newFinalAmount,
     })
   } catch (error) {
     console.error("💥 Payment verification error:", error)

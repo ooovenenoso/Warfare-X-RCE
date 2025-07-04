@@ -1,45 +1,88 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase"
+import { createAdminClient } from "@/lib/supabase"
+import { headers } from "next/headers"
+
+function getUserIdentifier(request: Request) {
+  const headersList = headers()
+  const forwarded = headersList.get("x-forwarded-for")
+  const ip = forwarded ? forwarded.split(",")[0] : headersList.get("x-real-ip") || "unknown"
+
+  return `ip_${ip}`
+}
 
 export async function POST(request: Request) {
   try {
-    const { x, y, color, userId } = await request.json()
+    const { x, y, choice, color } = await request.json()
+    const userIdentifier = getUserIdentifier(request)
+    const supabase = createAdminClient()
 
-    // Validate input
-    if (typeof x !== "number" || typeof y !== "number" || !color || !userId) {
-      return NextResponse.json({ error: "Invalid input" }, { status: 400 })
+    // Check cooldown
+    const { data: cooldownData } = await supabase
+      .from("pixel_cooldowns")
+      .select("last_placed_at")
+      .eq("user_identifier", userIdentifier)
+      .single()
+
+    if (cooldownData) {
+      const lastPlaced = new Date(cooldownData.last_placed_at)
+      const now = new Date()
+      const timeDiff = Math.floor((now.getTime() - lastPlaced.getTime()) / 1000)
+
+      if (timeDiff < 30) {
+        return NextResponse.json(
+          {
+            error: "Cooldown active",
+            cooldown: 30 - timeDiff,
+          },
+          { status: 429 },
+        )
+      }
     }
 
     // Validate coordinates
-    if (x < 0 || x >= 100 || y < 0 || y >= 100) {
+    if (x < 0 || x >= 50 || y < 0 || y >= 50) {
       return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 })
     }
 
-    // Validate color format (hex color)
-    if (!/^#[0-9A-F]{6}$/i.test(color)) {
-      return NextResponse.json({ error: "Invalid color format" }, { status: 400 })
+    // Validate choice
+    if (!["welcome_kit", "builder_kit"].includes(choice)) {
+      return NextResponse.json({ error: "Invalid choice" }, { status: 400 })
     }
 
-    const supabase = createClient()
+    // Place pixel (upsert)
+    const { error: pixelError } = await supabase.from("pixel_war").upsert(
+      {
+        x,
+        y,
+        color,
+        choice,
+        user_identifier: userIdentifier,
+        placed_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "x,y",
+      },
+    )
 
-    // No cooldown check - place pixel immediately
-    const { error: insertError } = await supabase.from("pixel_placements").insert({
-      x,
-      y,
-      color,
-      user_id: userId,
-      placed_at: new Date().toISOString(),
-    })
-
-    if (insertError) {
+    if (pixelError) {
+      console.error("Failed to place pixel:", pixelError)
       return NextResponse.json({ error: "Failed to place pixel" }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "Pixel placed successfully",
-    })
+    // Update cooldown
+    await supabase.from("pixel_cooldowns").upsert(
+      {
+        user_identifier: userIdentifier,
+        last_placed_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "user_identifier",
+      },
+    )
+
+    return NextResponse.json({ success: true })
   } catch (error) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 })
+    console.error("Failed to place pixel:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

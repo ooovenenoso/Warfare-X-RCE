@@ -7,27 +7,20 @@ interface VisitorData {
   browser?: string
   os?: string
   referrer?: string
-  timestamp: string
-  url: string
 }
 
-export async function trackVisitor(request?: Request) {
+export async function trackVisitor(request: Request) {
   if (!process.env.VISITOR_WEBHOOK_URL) {
     return
   }
 
   try {
     // Extract visitor information
-    const headers = request ? request.headers : {}
+    const headers = request.headers
     const forwarded = headers.get("x-forwarded-for")
     const ip = forwarded ? forwarded.split(",")[0] : headers.get("x-real-ip") || "unknown"
-    const userAgent = request
-      ? headers.get("user-agent") || "unknown"
-      : typeof window !== "undefined"
-        ? window.navigator.userAgent
-        : "Unknown"
-    const referrer = request ? headers.get("referer") || "direct" : "Unknown"
-    const url = request ? request.url : typeof window !== "undefined" ? window.location.href : "Unknown"
+    const userAgent = headers.get("user-agent") || "unknown"
+    const referrer = headers.get("referer") || "direct"
 
     // Parse user agent for device/browser info
     const deviceInfo = parseUserAgent(userAgent)
@@ -52,8 +45,6 @@ export async function trackVisitor(request?: Request) {
       browser: deviceInfo.browser,
       os: deviceInfo.os,
       referrer: referrer,
-      timestamp: new Date().toISOString(),
-      url: url,
     }
 
     // Send to webhook
@@ -86,8 +77,7 @@ function parseUserAgent(userAgent: string) {
 }
 
 async function sendVisitorWebhook(visitorData: VisitorData) {
-  const webhookUrl = process.env.VISITOR_WEBHOOK_URL
-  if (!webhookUrl) return
+  if (!process.env.VISITOR_WEBHOOK_URL) return
 
   const embed = {
     title: "🔍 New Visitor Detected",
@@ -119,21 +109,11 @@ async function sendVisitorWebhook(visitorData: VisitorData) {
         value: `\`${visitorData.ip_address}\``,
         inline: true,
       },
-      {
-        name: "🕒 Time",
-        value: visitorData.timestamp,
-        inline: true,
-      },
-      {
-        name: "🔗 Page",
-        value: visitorData.url,
-        inline: true,
-      },
     ],
     footer: {
       text: "WARFARE Visitor Tracking",
     },
-    timestamp: visitorData.timestamp,
+    timestamp: new Date().toISOString(),
   }
 
   const webhookData = {
@@ -142,7 +122,7 @@ async function sendVisitorWebhook(visitorData: VisitorData) {
   }
 
   try {
-    await fetch(webhookUrl, {
+    await fetch(process.env.VISITOR_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(webhookData),
