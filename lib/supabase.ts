@@ -1,13 +1,12 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
-import { encrypt, decrypt } from "./secure-config"
+import { getSecureConfig, encrypt } from "./secure-config"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// Get secure configuration
+const config = getSecureConfig()
 
-// Create client function for client-side usage
+// Create client-side Supabase client
 export function createClient() {
-  return createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+  return createSupabaseClient(config.supabaseUrl, config.supabaseAnonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -15,9 +14,9 @@ export function createClient() {
   })
 }
 
-// Create admin client function for server-side operations
+// Create admin client with service role key
 export function createAdminClient() {
-  return createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+  return createSupabaseClient(config.supabaseUrl, config.supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -25,37 +24,28 @@ export function createAdminClient() {
   })
 }
 
-// Default client instance
-export const supabase = createClient()
-
-// Admin client instance
-export const supabaseAdmin = createAdminClient()
-
-// Secure query wrapper that encrypts sensitive data and hides errors
-export async function secureQuery<T = any>(
-  query: () => Promise<{ data: T | null; error: any }>,
-  options: {
-    encryptFields?: string[]
-    hideErrors?: boolean
-  } = {},
+// Secure query wrapper that hides database errors and encrypts sensitive data
+export async function secureQuery<T>(
+  queryFn: () => Promise<{ data: T; error: any }>,
+  options: { hideErrors?: boolean; encryptFields?: string[] } = {},
 ): Promise<{ data: T | null; error: any }> {
   try {
-    const result = await query()
+    const result = await queryFn()
 
     if (result.error) {
       if (options.hideErrors) {
-        console.error("Database error (hidden):", result.error)
-        return { data: null, error: { message: "Database operation failed" } }
+        console.error("Database query failed:", result.error)
+        return { data: null, error: "Query failed" }
       }
       return result
     }
 
-    // Encrypt specified fields if in production
-    if (result.data && options.encryptFields && process.env.NODE_ENV === "production") {
-      const encryptedData = { ...result.data }
+    // Encrypt sensitive fields if specified
+    if (options.encryptFields && result.data) {
+      const encryptedData = { ...result.data } as any
       for (const field of options.encryptFields) {
-        if (encryptedData[field as keyof T]) {
-          ;(encryptedData as any)[field] = encrypt(String((encryptedData as any)[field]))
+        if (encryptedData[field]) {
+          encryptedData[field] = encrypt(encryptedData[field])
         }
       }
       return { data: encryptedData, error: null }
@@ -64,58 +54,74 @@ export async function secureQuery<T = any>(
     return result
   } catch (error) {
     console.error("Secure query error:", error)
-    return {
-      data: null,
-      error: options.hideErrors ? { message: "Database operation failed" } : error,
-    }
+    return { data: null, error: options.hideErrors ? "Query failed" : error }
   }
 }
 
-// Helper function to decrypt data
-export function decryptData<T>(data: T, fields: string[]): T {
-  if (!data || process.env.NODE_ENV !== "production") return data
-
-  const decryptedData = { ...data }
-  for (const field of fields) {
-    if ((decryptedData as any)[field]) {
-      try {
-        ;(decryptedData as any)[field] = decrypt((decryptedData as any)[field])
-      } catch (error) {
-        console.error(`Failed to decrypt field ${field}:`, error)
-      }
-    }
-  }
-  return decryptedData
-}
-
-// Helper function to get user session
+// Get user session securely
 export async function getUserSession() {
-  const client = createClient()
-  const {
-    data: { session },
-    error,
-  } = await client.auth.getSession()
+  try {
+    const supabase = createClient()
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession()
 
-  if (error) {
-    console.error("Session error:", error)
+    if (error) {
+      console.error("Session error:", error)
+      return null
+    }
+
+    return session
+  } catch (error) {
+    console.error("Get session error:", error)
     return null
   }
-
-  return session
 }
 
-// Helper function to get user
+// Get user data securely
 export async function getUser() {
-  const client = createClient()
-  const {
-    data: { user },
-    error,
-  } = await client.auth.getUser()
+  try {
+    const supabase = createClient()
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
 
-  if (error) {
-    console.error("User error:", error)
+    if (error) {
+      console.error("User error:", error)
+      return null
+    }
+
+    return user
+  } catch (error) {
+    console.error("Get user error:", error)
     return null
   }
+}
 
-  return user
+// Secure database operations with error handling
+export async function secureInsert(table: string, data: any) {
+  return secureQuery(() => createAdminClient().from(table).insert(data).select(), { hideErrors: true })
+}
+
+export async function secureUpdate(table: string, data: any, condition: any) {
+  return secureQuery(() => createAdminClient().from(table).update(data).match(condition).select(), { hideErrors: true })
+}
+
+export async function secureSelect(table: string, columns = "*", condition?: any) {
+  return secureQuery(
+    () => {
+      let query = createAdminClient().from(table).select(columns)
+      if (condition) {
+        query = query.match(condition)
+      }
+      return query
+    },
+    { hideErrors: true },
+  )
+}
+
+export async function secureDelete(table: string, condition: any) {
+  return secureQuery(() => createAdminClient().from(table).delete().match(condition), { hideErrors: true })
 }
