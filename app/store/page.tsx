@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   ShoppingCart,
@@ -64,6 +65,64 @@ interface LinkStatus {
   username: string | null
 }
 
+const mockPackagesData: CreditPackage[] = [
+  {
+    id: "1",
+    name: "Starter Pack",
+    description: "Perfect for new players getting started",
+    credits: 1000,
+    price: 9.99,
+    basePrice: 9.99,
+    image_url: "/placeholder.svg?height=200&width=300",
+    active: true,
+    popular: false,
+    priceMode: "normal",
+  },
+  {
+    id: "2",
+    name: "Pro Pack",
+    description: "Most popular choice among players",
+    credits: 2500,
+    price: 19.99,
+    basePrice: 19.99,
+    image_url: "/placeholder.svg?height=200&width=300",
+    active: true,
+    popular: true,
+    priceMode: "normal",
+  },
+  {
+    id: "3",
+    name: "Elite Pack",
+    description: "For serious gamers who want more",
+    credits: 6000,
+    price: 39.99,
+    basePrice: 39.99,
+    image_url: "/placeholder.svg?height=200&width=300",
+    active: true,
+    popular: false,
+    priceMode: "normal",
+  },
+  {
+    id: "4",
+    name: "Ultimate Pack",
+    description: "Maximum value for hardcore players",
+    credits: 15000,
+    price: 79.99,
+    basePrice: 79.99,
+    image_url: "/placeholder.svg?height=200&width=300",
+    active: true,
+    popular: false,
+    bestValue: true,
+    priceMode: "normal",
+  },
+]
+
+const mockServers: Server[] = [
+  { id: "server1", name: "Main Server", description: "Primary gaming server", active: true },
+  { id: "server2", name: "PvP Server", description: "Player vs Player server", active: true },
+  { id: "server3", name: "Creative Server", description: "Creative building server", active: true },
+]
+
 const availableFeatures = [
   {
     icon: CreditCard,
@@ -109,18 +168,17 @@ const comingSoonFeatures = [
 export default function StorePage() {
   const { user, signInWithDiscord } = useAuth()
   const { toast } = useToast()
-
-  // Usar el hook para manejar errores de ResizeObserver
   useResizeObserverErrorHandler()
 
-  const [packages, setPackages] = useState<CreditPackage[]>([])
-  const [servers, setServers] = useState<Server[]>([])
+  const [packages, setPackages] = useState<CreditPackage[]>(mockPackagesData)
+  const [servers, setServers] = useState<Server[]>(mockServers)
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null)
   const [selectedServer, setSelectedServer] = useState<string>("")
   const [linkStatus, setLinkStatus] = useState<LinkStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [checkingLink, setCheckingLink] = useState(false)
   const [currentMode, setCurrentMode] = useState<string>("normal")
+  const [isDemo, setIsDemo] = useState(false)
   const [activeTab, setActiveTab] = useState("buy-credits")
   const [purchasing, setPurchasing] = useState(false)
 
@@ -172,7 +230,7 @@ export default function StorePage() {
         setCurrentMode(data.mode || "normal")
       }
     } catch (error) {
-      console.error("Error fetching price mode:", error)
+      console.error("Error fetching current mode:", error)
     }
   }
 
@@ -239,6 +297,15 @@ export default function StorePage() {
 
     setCheckingLink(true)
     try {
+      const discordId = user.user_metadata?.provider_id || user.user_metadata?.sub || user.id
+
+      console.log("🔍 Checking user link with:", {
+        discordId,
+        serverId: selectedServer,
+        userMetadata: user.user_metadata,
+        userId: user.id,
+      })
+
       const response = await fetch("/api/check-link", {
         method: "POST",
         headers: {
@@ -251,13 +318,16 @@ export default function StorePage() {
       })
 
       const data = await response.json()
+      console.log("📤 Link check response:", data)
 
       if (response.ok) {
         setLinkStatus(data)
       } else {
+        console.error("❌ Link check failed:", data)
         setLinkStatus({ isLinked: false, username: null })
       }
     } catch (error) {
+      console.error("💥 Error checking link:", error)
       setLinkStatus({ isLinked: false, username: null })
     } finally {
       setCheckingLink(false)
@@ -306,14 +376,14 @@ export default function StorePage() {
       const data = await response.json()
 
       if (response.ok) {
-        if (data.url) {
-          window.location.href = data.url
-        } else {
+        if (data.demo) {
+          setIsDemo(true)
           toast({
-            title: "Error",
-            description: "No checkout URL received",
-            variant: "destructive",
+            title: "Demo Purchase Successful! 🎉",
+            description: `${selectedPackage.credits.toLocaleString()} credits added to your account! Discord notification sent.`,
           })
+        } else if (data.url) {
+          window.location.href = data.url
         }
       } else {
         toast({
@@ -323,6 +393,7 @@ export default function StorePage() {
         })
       }
     } catch (error) {
+      console.error("Purchase error:", error)
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -374,6 +445,17 @@ export default function StorePage() {
       <div className="sigma-bg-effect" />
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-6 md:py-8">
+        {/* Demo Mode Alert */}
+        {isDemo && (
+          <Alert className="mb-6 border-green-600 bg-green-500 bg-opacity-10 rounded-xl">
+            <CheckCircle className="h-4 w-4 text-green-400" />
+            <AlertDescription className="text-green-300">
+              <strong>Demo Purchase Successful!</strong> Credits have been added to your account and Discord
+              notification sent! In production, this would redirect to Stripe for real payment processing.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Hero Section */}
         <div className="text-center mb-8 md:mb-12 sigma-slide-in">
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-black mb-4 md:mb-6 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 bg-clip-text text-transparent">
@@ -444,94 +526,86 @@ export default function StorePage() {
               <div className="lg:col-span-2 order-2 lg:order-1">
                 <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-white">CHOOSE YOUR PACKAGE</h2>
 
-                {packages.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Package className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-                    <h3 className="text-xl font-semibold mb-2 text-gray-400">No packages available</h3>
-                    <p className="text-gray-500">Please check back later or contact support.</p>
-                  </div>
-                ) : (
-                  <div className="sigma-grid">
-                    {packages.map((pkg, index) => (
-                      <Card
-                        key={pkg.id}
-                        className={`cursor-pointer transition-all duration-300 relative overflow-hidden ${
-                          selectedPackage?.id === pkg.id ? "sigma-card selected" : "sigma-card"
-                        }`}
-                        onClick={() => setSelectedPackage(pkg)}
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        {/* Badges */}
-                        <div className="absolute top-3 right-3 flex flex-col gap-1">
-                          {pkg.popular && (
-                            <Badge className="sigma-badge popular text-xs">
-                              <Star className="w-2 h-2 mr-1" />
-                              POPULAR
-                            </Badge>
-                          )}
-                          {pkg.bestValue && (
-                            <Badge className="sigma-badge best-value text-xs">
-                              <Crown className="w-2 h-2 mr-1" />
-                              BEST VALUE
-                            </Badge>
-                          )}
-                          {pkg.discount && (
-                            <Badge className="sigma-badge discount text-xs">
-                              <Percent className="w-2 h-2 mr-1" />
-                              {pkg.discount}% OFF
-                            </Badge>
-                          )}
+                <div className="sigma-grid">
+                  {packages.map((pkg, index) => (
+                    <Card
+                      key={pkg.id}
+                      className={`cursor-pointer transition-all duration-300 relative overflow-hidden ${
+                        selectedPackage?.id === pkg.id ? "sigma-card selected" : "sigma-card"
+                      }`}
+                      onClick={() => setSelectedPackage(pkg)}
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      {/* Badges */}
+                      <div className="absolute top-3 right-3 flex flex-col gap-1">
+                        {pkg.popular && (
+                          <Badge className="sigma-badge popular text-xs">
+                            <Star className="w-2 h-2 mr-1" />
+                            POPULAR
+                          </Badge>
+                        )}
+                        {pkg.bestValue && (
+                          <Badge className="sigma-badge best-value text-xs">
+                            <Crown className="w-2 h-2 mr-1" />
+                            BEST VALUE
+                          </Badge>
+                        )}
+                        {pkg.discount && (
+                          <Badge className="sigma-badge discount text-xs">
+                            <Percent className="w-2 h-2 mr-1" />
+                            {pkg.discount}% OFF
+                          </Badge>
+                        )}
+                      </div>
+
+                      <CardHeader className="pb-3 md:pb-4">
+                        <CardTitle className="text-lg md:text-xl font-bold text-white mb-2 pr-16 md:pr-20">
+                          {pkg.name}
+                        </CardTitle>
+                        <CardDescription className="text-gray-400 text-sm">{pkg.description}</CardDescription>
+                        <div className="inline-flex items-center gap-2 mt-2">
+                          <Badge
+                            variant="secondary"
+                            className="bg-gray-800 text-primary border border-primary/20 text-xs"
+                          >
+                            {pkg.credits.toLocaleString()} CREDITS
+                          </Badge>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent>
+                        <div className="flex items-center justify-between mb-3 md:mb-4">
+                          <div className="flex items-center gap-2 md:gap-3">
+                            <span className="sigma-price text-xl md:text-2xl">${pkg.price.toFixed(2)}</span>
+                            {pkg.originalPrice && (
+                              <span className="text-base md:text-lg text-gray-500 line-through">
+                                ${pkg.originalPrice.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs md:text-sm text-gray-400">
+                            ${((pkg.price / pkg.credits) * 1000).toFixed(2)} per 1K
+                          </div>
                         </div>
 
-                        <CardHeader className="pb-3 md:pb-4">
-                          <CardTitle className="text-lg md:text-xl font-bold text-white mb-2 pr-16 md:pr-20">
-                            {pkg.name}
-                          </CardTitle>
-                          <CardDescription className="text-gray-400 text-sm">{pkg.description}</CardDescription>
-                          <div className="inline-flex items-center gap-2 mt-2">
-                            <Badge
-                              variant="secondary"
-                              className="bg-gray-800 text-primary border border-primary/20 text-xs"
-                            >
-                              {pkg.credits.toLocaleString()} CREDITS
-                            </Badge>
+                        {/* Savings indicator */}
+                        {pkg.discount && (
+                          <div className="text-sm text-yellow-400 font-semibold mb-3">
+                            💰 SAVE ${(pkg.originalPrice! - pkg.price).toFixed(2)}!
                           </div>
-                        </CardHeader>
+                        )}
 
-                        <CardContent>
-                          <div className="flex items-center justify-between mb-3 md:mb-4">
-                            <div className="flex items-center gap-2 md:gap-3">
-                              <span className="sigma-price text-xl md:text-2xl">${pkg.price.toFixed(2)}</span>
-                              {pkg.originalPrice && (
-                                <span className="text-base md:text-lg text-gray-500 line-through">
-                                  ${pkg.originalPrice.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs md:text-sm text-gray-400">
-                              ${((pkg.price / pkg.credits) * 1000).toFixed(2)} per 1K
-                            </div>
-                          </div>
-
-                          {/* Savings indicator */}
-                          {pkg.discount && (
-                            <div className="text-sm text-yellow-400 font-semibold mb-3">
-                              💰 SAVE ${(pkg.originalPrice! - pkg.price).toFixed(2)}!
-                            </div>
-                          )}
-
-                          {/* Value Progress Bar */}
-                          <div className="sigma-progress">
-                            <div
-                              className="sigma-progress-fill"
-                              style={{ width: `${Math.min(100, (pkg.credits / 15000) * 100)}%` }}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                        {/* Value Progress Bar */}
+                        <div className="sigma-progress">
+                          <div
+                            className="sigma-progress-fill"
+                            style={{ width: `${Math.min(100, (pkg.credits / 15000) * 100)}%` }}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
 
               {/* Order Summary - Moved to top on mobile */}
