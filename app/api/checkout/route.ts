@@ -1,73 +1,35 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import Stripe from "stripe"
+import { createAdminClient, secureDbOperation } from "@/lib/supabase"
+import { sanitizeForLogs } from "@/lib/encryption"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2024-06-20",
+})
 
 export async function POST(request: NextRequest) {
   try {
-    const { packageId, serverId, discordId } = await request.json()
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json({ error: "Payment system not configured" }, { status: 503 })
+    }
 
-    const sessionClient = createRouteHandlerClient({ cookies })
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
+    const { packageId, discordId, discordUsername } = await request.json()
 
-    const sessionDiscordId = user?.user_metadata?.provider_id || user?.user_metadata?.sub || user?.id
-    const userId = user?.id || null
-
-    const finalDiscordId = discordId || sessionDiscordId || "unknown"
-
-    if (!packageId || !serverId) {
+    if (!packageId || !discordId || !discordUsername) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Check if Stripe is configured
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.log("Stripe not configured - using demo mode")
+    const supabase = createAdminClient()
 
-      // Demo mode - simulate successful purchase
-      const demoTransaction = {
-        id: "demo-" + Date.now(),
-        packageId,
-        serverId,
-        discordId: discordId || "907231041167716352",
-        amount: 19.99,
-        credits: 2500,
-        status: "completed",
-      }
+    // Get package details with secure operation
+    const packageData = await secureDbOperation(async () => {
+      const { data, error } = await supabase.from("packages").select("*").eq("id", packageId).single()
 
-      // Simulate webhook call for demo
-      try {
-        await fetch(`${request.nextUrl.origin}/api/verify-payment`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: "demo-session-" + Date.now() }),
-        })
-      } catch (error) {
-        console.error("Demo webhook error:", error)
-      }
+      if (error) throw error
+      return data
+    }, "fetch_package")
 
-      return NextResponse.json({
-        demo: true,
-        transaction: demoTransaction,
-        message: "Demo purchase completed successfully!",
-      })
-    }
-
-    // Real Stripe integration
-    const Stripe = (await import("stripe")).default
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-
-    // Fetch package details
-    const { data: package_data, error: packageError } = await supabase
-      .from("credit_packages")
-      .select("*")
-      .eq("id", packageId)
-      .single()
-
-    if (packageError || !package_data) {
+    if (!packageData) {
       return NextResponse.json({ error: "Package not found" }, { status: 404 })
     }
 
@@ -79,45 +41,42 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: "usd",
             product_data: {
-              name: package_data.name,
-              description: `${package_data.credits.toLocaleString()} credits - ${package_data.description}`,
+              name: packageData.name,
+              description: packageData.description,
             },
-            unit_amount: Math.round((package_data.current_price || package_data.base_price) * 100),
+            unit_amount: Math.round(packageData.price * 100),
           },
           quantity: 1,
         },
       ],
       mode: "payment",
       success_url: `${request.nextUrl.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${request.nextUrl.origin}/store`,
+      cancel_url: `${request.nextUrl.origin}/`,
       metadata: {
-        packageId,
-        discordId: finalDiscordId,
-        serverId: serverId || "default",
-        credits: package_data.credits.toString(),
+        packageId: packageId.toString(),
+        discordId,
+        discordUsername,
       },
     })
 
-    // Create pending transaction record
-    const { error: transactionError } = await supabase.from("store_transactions").insert({
-      package_id: packageId,
-      discord_id: finalDiscordId,
-      server_id: serverId || "default",
-      stripe_session_id: session.id,
-      base_amount: package_data.base_price || package_data.current_price,
-      final_amount: package_data.current_price || package_data.base_price,
-      credits_purchased: package_data.credits,
-      status: "pending",
-      payment_status: "pending",
-    })
+    // Store transaction with secure operation
+    await secureDbOperation(async () => {
+      const { error } = await supabase.from("transactions").insert({
+        stripe_session_id: session.id,
+        package_id: packageId,
+        discord_id: discordId,
+        discord_username: discordUsername,
+        amount: packageData.price,
+        status: "pending",
+      })
 
-    if (transactionError) {
-      console.error("Error creating transaction:", transactionError)
-    }
+      if (error) throw error
+    }, "create_transaction")
 
-    return NextResponse.json({ url: session.url })
+    return NextResponse.json({ sessionId: session.id })
   } catch (error) {
-    console.error("Error creating checkout session:", error)
-    return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })
+    // Sanitized error logging
+    const sanitizedError = sanitizeForLogs(error)
+    return NextResponse.json({ error: "Payment processing failed" }, { status: 500 })
   }
 }

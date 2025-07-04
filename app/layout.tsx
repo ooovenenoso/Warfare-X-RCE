@@ -3,14 +3,15 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/components/auth-provider"
-import { Toaster } from "@/components/ui/toaster"
+import { Navbar } from "@/components/navbar"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "CNQR Credits Store",
-  description: "Buy credits for CNQR servers",
+  title: "CNQR x Lotus - Gaming Store",
+  description: "Premium gaming packages and services powered by Lotus Dash",
     generator: 'v0.dev'
 }
 
@@ -27,7 +28,7 @@ export default function RootLayout({
             __html: `
               // Suppress ResizeObserver errors
               window.addEventListener('error', function(e) {
-                if (e.message && e.message.includes('ResizeObserver loop completed with undelivered notifications')) {
+                if (e.message && e.message.includes('ResizeObserver')) {
                   e.stopImmediatePropagation();
                 }
               });
@@ -38,6 +39,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
+            <Navbar />
             {children}
             <Toaster />
           </AuthProvider>

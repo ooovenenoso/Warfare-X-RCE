@@ -10,10 +10,10 @@ importers:
     dependencies:
       '@auth/core':
         specifier: latest
-        version: 0.40.0(nodemailer@7.0.3)
+        version: 0.40.0(nodemailer@7.0.4)
       '@hookform/resolvers':
         specifier: ^3.9.1
-        version: 3.9.1(react-hook-form@7.58.1(react@19.0.0))
+        version: 3.9.1(react-hook-form@7.59.0(react@19.0.0))
       '@radix-ui/react-accordion':
         specifier: latest
         version: 1.2.11(@types/react-dom@19.0.0)(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -97,13 +97,13 @@ importers:
         version: 1.2.7(@types/react-dom@19.0.0)(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@supabase/auth-helpers-nextjs':
         specifier: latest
-        version: 0.10.0(@supabase/supabase-js@2.50.2)
+        version: 0.10.0(@supabase/supabase-js@2.50.3)
       '@supabase/ssr':
         specifier: latest
-        version: 0.6.1(@supabase/supabase-js@2.50.2)
+        version: 0.6.1(@supabase/supabase-js@2.50.3)
       '@supabase/supabase-js':
         specifier: latest
-        version: 2.50.2
+        version: 2.50.3
       '@tanstack/react-table':
         specifier: latest
         version: 8.21.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -119,6 +119,9 @@ importers:
       cmdk:
         specifier: latest
         version: 1.1.1(@types/react-dom@19.0.0)(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      crypto:
+        specifier: latest
+        version: 1.0.1
       date-fns:
         specifier: 4.1.0
         version: 4.1.0
@@ -136,13 +139,13 @@ importers:
         version: 15.2.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       next-auth:
         specifier: latest
-        version: 4.24.11(@auth/core@0.40.0(nodemailer@7.0.3))(next@15.2.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@7.0.3)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        version: 4.24.11(@auth/core@0.40.0(nodemailer@7.0.4))(next@15.2.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@7.0.4)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       next-themes:
         specifier: latest
         version: 0.4.6(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       nodemailer:
         specifier: latest
-        version: 7.0.3
+        version: 7.0.4
       react:
         specifier: ^19
         version: 19.0.0
@@ -154,19 +157,19 @@ importers:
         version: 19.0.0(react@19.0.0)
       react-hook-form:
         specifier: latest
-        version: 7.58.1(react@19.0.0)
+        version: 7.59.0(react@19.0.0)
       react-resizable-panels:
         specifier: latest
         version: 3.0.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       recharts:
         specifier: latest
-        version: 3.0.0(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react-is@18.3.1)(react@19.0.0)(redux@5.0.1)
+        version: 3.0.2(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react-is@18.3.1)(react@19.0.0)(redux@5.0.1)
       sonner:
         specifier: latest
-        version: 2.0.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        version: 2.0.6(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       stripe:
         specifier: latest
-        version: 18.2.1(@types/node@22.0.0)
+        version: 18.3.0(@types/node@22.0.0)
       tailwind-merge:
         specifier: ^2.5.5
         version: 2.5.5
@@ -1103,8 +1106,8 @@ packages:
   '@supabase/auth-js@2.70.0':
     resolution: {integrity: sha512-BaAK/tOAZFJtzF1sE3gJ2FwTjLf4ky3PSvcvLGEgEmO4BSBkwWKu8l67rLLIBZPDnCyV7Owk2uPyKHa0kj5QGg==}
 
-  '@supabase/functions-js@2.4.4':
-    resolution: {integrity: sha512-WL2p6r4AXNGwop7iwvul2BvOtuJ1YQy8EbOd0dhG1oN1q8el/BIRSFCFnWAMM/vJJlHWLi4ad22sKbKr9mvjoA==}
+  '@supabase/functions-js@2.4.5':
+    resolution: {integrity: sha512-v5GSqb9zbosquTo6gBwIiq7W9eQ7rE5QazsK/ezNiQXdCbY+bH8D9qEaBIkhVvX4ZRW5rP03gEfw5yw9tiq4EQ==}
 
   '@supabase/node-fetch@2.6.15':
     resolution: {integrity: sha512-1ibVeYUacxWYi9i0cf5efil6adJ9WRyZBLivgjs+AUpewx1F3xPi7gLgaASI2SmIQxPoCEjAsLAzKPgMJVgOUQ==}
@@ -1124,8 +1127,8 @@ packages:
   '@supabase/storage-js@2.7.1':
     resolution: {integrity: sha512-asYHcyDR1fKqrMpytAS1zjyEfvxuOIp1CIXX7ji4lHHcJKqyk+sLl/Vxgm4sN6u8zvuUtae9e4kDxQP2qrwWBA==}
 
-  '@supabase/supabase-js@2.50.2':
-    resolution: {integrity: sha512-+27xlGgw7VyfwXXe+OiDJQosJNS+PPtjj1EnLR4uk+PKKZ91RA0/8NbIQybe6AGPanAaPtgOFFMMCArC6fZ++Q==}
+  '@supabase/supabase-js@2.50.3':
+    resolution: {integrity: sha512-Ld42AbfSXKnbCE2ObRvrGC5wj9OrfTOzswQZg0OcGQGx+QqcWYN/IqsLqrt4gCFrD57URbNRfGESSWzchzKAuQ==}
 
   '@swc/counter@0.1.3':
     resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
@@ -1313,6 +1316,10 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
+
+  crypto@1.0.1:
+    resolution: {integrity: sha512-VxBKmeNcqQdiUQUW2Tzq0t377b54N2bMtXO/qiLa+6eRRmmC4qT3D4OnTGoT/U6O9aklQ/jTwbOtRMTTY8G0Ig==}
+    deprecated: This package is no longer supported. It's now a built-in Node module. If you've depended on crypto, you should switch to the one that's built-in.
 
   cssesc@3.0.0:
     resolution: {integrity: sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==}
@@ -1653,8 +1660,8 @@ packages:
   node-releases@2.0.19:
     resolution: {integrity: sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==}
 
-  nodemailer@7.0.3:
-    resolution: {integrity: sha512-Ajq6Sz1x7cIK3pN6KesGTah+1gnwMnx5gKl3piQlQQE/PwyJ4Mbc8is2psWYxK3RJTVeqsDaCv8ZzXLCDHMTZw==}
+  nodemailer@7.0.4:
+    resolution: {integrity: sha512-9O00Vh89/Ld2EcVCqJ/etd7u20UhME0f/NToPfArwPEe1Don1zy4mAIz6ariRr7mJ2RDxtaDzN0WJVdVXPtZaw==}
     engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
@@ -1805,8 +1812,8 @@ packages:
     peerDependencies:
       react: ^19.0.0
 
-  react-hook-form@7.58.1:
-    resolution: {integrity: sha512-Lml/KZYEEFfPhUVgE0RdCVpnC4yhW+PndRhbiTtdvSlQTL8IfVR+iQkBjLIvmmc6+GGoVeM11z37ktKFPAb0FA==}
+  react-hook-form@7.59.0:
+    resolution: {integrity: sha512-kmkek2/8grqarTJExFNjy+RXDIP8yM+QTl3QL6m6Q8b2bih4ltmiXxH7T9n+yXNK477xPh5yZT/6vD8sYGzJTA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
@@ -1873,8 +1880,8 @@ packages:
     resolution: {integrity: sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA==}
     engines: {node: '>=8.10.0'}
 
-  recharts@3.0.0:
-    resolution: {integrity: sha512-GODedlXZEOQ/KN15puHqaEk9JaiUvFr+Wef/nSagi7g9wHPFLB7prH1/J8vyEBtA2Es6r8qGY1t2OqkuAIpgBg==}
+  recharts@3.0.2:
+    resolution: {integrity: sha512-eDc3ile9qJU9Dp/EekSthQPhAVPG48/uM47jk+PF7VBQngxeW3cwQpPHb/GHC1uqwyCRWXcIrDzuHRVrnRryoQ==}
     engines: {node: '>=18'}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -1950,8 +1957,8 @@ packages:
   simple-swizzle@0.2.2:
     resolution: {integrity: sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg==}
 
-  sonner@2.0.5:
-    resolution: {integrity: sha512-YwbHQO6cSso3HBXlbCkgrgzDNIhws14r4MO87Ofy+cV2X7ES4pOoAK3+veSmVTvqNx1BWUxlhPmZzP00Crk2aQ==}
+  sonner@2.0.6:
+    resolution: {integrity: sha512-yHFhk8T/DK3YxjFQXIrcHT1rGEeTLliVzWbO0xN8GberVun2RiBnxAjXAYpZrqwEVHBG9asI/Li8TAAhN9m59Q==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
@@ -1980,8 +1987,8 @@ packages:
     resolution: {integrity: sha512-iq6eVVI64nQQTRYq2KtEg2d2uU7LElhTJwsH4YzIHZshxlgZms/wIc4VoDQTlG/IvVIrBKG06CrZnp0qv7hkcQ==}
     engines: {node: '>=12'}
 
-  stripe@18.2.1:
-    resolution: {integrity: sha512-GwB1B7WSwEBzW4dilgyJruUYhbGMscrwuyHsPUmSRKrGHZ5poSh2oU9XKdii5BFVJzXHn35geRvGJ6R8bYcp8w==}
+  stripe@18.3.0:
+    resolution: {integrity: sha512-FkxrTUUcWB4CVN2yzgsfF/YHD6WgYHduaa7VmokCy5TLCgl5UNJkwortxcedrxSavQ8Qfa4Ir4JxcbIYiBsyLg==}
     engines: {node: '>=12.*'}
     peerDependencies:
       '@types/node': '>=12.x.x'
@@ -2148,7 +2155,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@auth/core@0.40.0(nodemailer@7.0.3)':
+  '@auth/core@0.40.0(nodemailer@7.0.4)':
     dependencies:
       '@panva/hkdf': 1.2.1
       jose: 6.0.11
@@ -2156,7 +2163,7 @@ snapshots:
       preact: 10.24.3
       preact-render-to-string: 6.5.11(preact@10.24.3)
     optionalDependencies:
-      nodemailer: 7.0.3
+      nodemailer: 7.0.4
 
   '@babel/runtime@7.27.6': {}
 
@@ -2184,9 +2191,9 @@ snapshots:
 
   '@floating-ui/utils@0.2.9': {}
 
-  '@hookform/resolvers@3.9.1(react-hook-form@7.58.1(react@19.0.0))':
+  '@hookform/resolvers@3.9.1(react-hook-form@7.59.0(react@19.0.0))':
     dependencies:
-      react-hook-form: 7.58.1(react@19.0.0)
+      react-hook-form: 7.59.0(react@19.0.0)
 
   '@img/sharp-darwin-arm64@0.33.5':
     optionalDependencies:
@@ -3021,22 +3028,22 @@ snapshots:
 
   '@standard-schema/utils@0.3.0': {}
 
-  '@supabase/auth-helpers-nextjs@0.10.0(@supabase/supabase-js@2.50.2)':
+  '@supabase/auth-helpers-nextjs@0.10.0(@supabase/supabase-js@2.50.3)':
     dependencies:
-      '@supabase/auth-helpers-shared': 0.7.0(@supabase/supabase-js@2.50.2)
-      '@supabase/supabase-js': 2.50.2
+      '@supabase/auth-helpers-shared': 0.7.0(@supabase/supabase-js@2.50.3)
+      '@supabase/supabase-js': 2.50.3
       set-cookie-parser: 2.7.1
 
-  '@supabase/auth-helpers-shared@0.7.0(@supabase/supabase-js@2.50.2)':
+  '@supabase/auth-helpers-shared@0.7.0(@supabase/supabase-js@2.50.3)':
     dependencies:
-      '@supabase/supabase-js': 2.50.2
+      '@supabase/supabase-js': 2.50.3
       jose: 4.15.9
 
   '@supabase/auth-js@2.70.0':
     dependencies:
       '@supabase/node-fetch': 2.6.15
 
-  '@supabase/functions-js@2.4.4':
+  '@supabase/functions-js@2.4.5':
     dependencies:
       '@supabase/node-fetch': 2.6.15
 
@@ -3059,19 +3066,19 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@supabase/ssr@0.6.1(@supabase/supabase-js@2.50.2)':
+  '@supabase/ssr@0.6.1(@supabase/supabase-js@2.50.3)':
     dependencies:
-      '@supabase/supabase-js': 2.50.2
+      '@supabase/supabase-js': 2.50.3
       cookie: 1.0.2
 
   '@supabase/storage-js@2.7.1':
     dependencies:
       '@supabase/node-fetch': 2.6.15
 
-  '@supabase/supabase-js@2.50.2':
+  '@supabase/supabase-js@2.50.3':
     dependencies:
       '@supabase/auth-js': 2.70.0
-      '@supabase/functions-js': 2.4.4
+      '@supabase/functions-js': 2.4.5
       '@supabase/node-fetch': 2.6.15
       '@supabase/postgrest-js': 1.19.4
       '@supabase/realtime-js': 2.11.15
@@ -3269,6 +3276,8 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  crypto@1.0.1: {}
 
   cssesc@3.0.0: {}
 
@@ -3525,7 +3534,7 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  next-auth@4.24.11(@auth/core@0.40.0(nodemailer@7.0.3))(next@15.2.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@7.0.3)(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
+  next-auth@4.24.11(@auth/core@0.40.0(nodemailer@7.0.4))(next@15.2.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@7.0.4)(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:
       '@babel/runtime': 7.27.6
       '@panva/hkdf': 1.2.1
@@ -3540,8 +3549,8 @@ snapshots:
       react-dom: 19.0.0(react@19.0.0)
       uuid: 8.3.2
     optionalDependencies:
-      '@auth/core': 0.40.0(nodemailer@7.0.3)
-      nodemailer: 7.0.3
+      '@auth/core': 0.40.0(nodemailer@7.0.4)
+      nodemailer: 7.0.4
 
   next-themes@0.4.6(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:
@@ -3575,7 +3584,7 @@ snapshots:
 
   node-releases@2.0.19: {}
 
-  nodemailer@7.0.3: {}
+  nodemailer@7.0.4: {}
 
   normalize-path@3.0.0: {}
 
@@ -3697,7 +3706,7 @@ snapshots:
       react: 19.0.0
       scheduler: 0.25.0
 
-  react-hook-form@7.58.1(react@19.0.0):
+  react-hook-form@7.59.0(react@19.0.0):
     dependencies:
       react: 19.0.0
 
@@ -3754,7 +3763,7 @@ snapshots:
     dependencies:
       picomatch: 2.3.1
 
-  recharts@3.0.0(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react-is@18.3.1)(react@19.0.0)(redux@5.0.1):
+  recharts@3.0.2(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react-is@18.3.1)(react@19.0.0)(redux@5.0.1):
     dependencies:
       '@reduxjs/toolkit': 2.8.2(react-redux@9.2.0(@types/react@19.0.0)(react@19.0.0)(redux@5.0.1))(react@19.0.0)
       clsx: 2.1.1
@@ -3869,7 +3878,7 @@ snapshots:
       is-arrayish: 0.3.2
     optional: true
 
-  sonner@2.0.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
+  sonner@2.0.6(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
@@ -3898,7 +3907,7 @@ snapshots:
     dependencies:
       ansi-regex: 6.1.0
 
-  stripe@18.2.1(@types/node@22.0.0):
+  stripe@18.3.0(@types/node@22.0.0):
     dependencies:
       qs: 6.14.0
     optionalDependencies:
