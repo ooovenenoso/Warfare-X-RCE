@@ -9,25 +9,8 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Warfare Credits Store - Powered by Lotus Dash",
-  description:
-    "Buy credits for Warfare servers. Secure, instant, and reliable gaming currency powered by Lotus Dash platform.",
-  keywords: "gaming, credits, warfare, minecraft, discord, store, lotus dash",
-  authors: [{ name: "Lotus Dash" }],
-  creator: "Lotus Dash",
-  publisher: "Lotus Dash",
-  robots: "index, follow",
-  openGraph: {
-    title: "Warfare Credits Store - Powered by Lotus Dash",
-    description: "Buy credits for Warfare servers. Secure, instant, and reliable gaming currency.",
-    type: "website",
-    locale: "en_US",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Warfare Credits Store - Powered by Lotus Dash",
-    description: "Buy credits for Warfare servers. Secure, instant, and reliable gaming currency.",
-  },
+  title: "CNQR Credits Store",
+  description: "Buy credits for CNQR servers",
     generator: 'v0.dev'
 }
 
@@ -44,7 +27,7 @@ export default function RootLayout({
             __html: `
               // Suppress ResizeObserver errors
               window.addEventListener('error', function(e) {
-                if (e.message && e.message.includes('ResizeObserver loop')) {
+                if (e.message && e.message.includes('ResizeObserver loop completed with undelivered notifications')) {
                   e.stopImmediatePropagation();
                 }
               });
@@ -53,7 +36,7 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
             {children}
             <Toaster />
