@@ -18,11 +18,9 @@ export async function sendPurchaseNotification(
   username: string,
 ) {
   if (!process.env.DISCORD_WEBHOOK_URL) {
-    console.log("Discord webhook URL not configured")
     return
   }
 
-  // Create motivational messages that encourage more purchases
   const motivationalMessages = [
     "🔥 **ANOTHER LEGEND JUST POWERED UP!** 🔥\n\n*Don't get left behind - join the winners and grab your credits today!*",
     "💎 **SMART MOVE!** Someone just invested in their success! 💎\n\n*Ready to dominate like them? Get your credits now!*",
@@ -33,11 +31,10 @@ export async function sendPurchaseNotification(
 
   const randomMessage = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]
 
-  // Create psychological triggers in the embed
   const embed = {
     title: "💰 NEW CREDIT PURCHASE! 💰",
     description: `**${username}** just boosted their game with **${packageData.credits.toLocaleString()} credits**! 🚀\n\n*Smart players invest in their success!*`,
-    color: 0xffd700, // Gold color
+    color: 0xffd700,
     fields: [
       {
         name: "🎮 Smart Player",
@@ -76,10 +73,10 @@ export async function sendPurchaseNotification(
     },
     timestamp: new Date().toISOString(),
     thumbnail: {
-      url: "https://media.tenor.com/images/money_rain.gif", // Money/success themed GIF
+      url: "https://media.tenor.com/images/money_rain.gif",
     },
     image: {
-      url: "https://i.imgur.com/your-promotional-banner.png", // Optional promotional banner
+      url: "https://i.imgur.com/your-promotional-banner.png",
     },
   }
 
@@ -100,16 +97,40 @@ export async function sendPurchaseNotification(
     })
 
     if (!response.ok) {
-      console.error("Failed to send Discord webhook:", response.statusText)
-    } else {
-      console.log("Discord webhook sent successfully")
+      // Silent error handling - no console logging
     }
   } catch (error) {
-    console.error("Error sending Discord webhook:", error)
+    // Silent error handling - no console logging
   }
 }
 
-// Alternative webhook for special events/promotions
+// Add the missing export
+export async function sendDiscordWebhook(message: string, embed?: any, username?: string) {
+  if (!process.env.DISCORD_WEBHOOK_URL) {
+    return
+  }
+
+  const webhookData = {
+    username: username || "CNQR Store",
+    content: message,
+    embeds: embed ? [embed] : undefined,
+  }
+
+  try {
+    const response = await fetch(process.env.DISCORD_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(webhookData),
+    })
+
+    return response.ok
+  } catch (error) {
+    return false
+  }
+}
+
 export async function sendSpecialPromotionWebhook(
   transaction: WebhookTransaction,
   packageData: WebhookPackage,
@@ -165,6 +186,6 @@ export async function sendSpecialPromotionWebhook(
       body: JSON.stringify(webhookData),
     })
   } catch (error) {
-    console.error("Error sending special promotion webhook:", error)
+    // Silent error handling
   }
 }
