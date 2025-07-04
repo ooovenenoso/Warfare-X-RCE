@@ -184,23 +184,18 @@ export default function StorePage() {
 
   useEffect(() => {
     const loadData = async () => {
-      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2000))
-
       try {
-        await Promise.race([Promise.all([fetchPackages(), fetchServers(), fetchCurrentMode()]), timeoutPromise])
+        await Promise.all([fetchPackages(), fetchServers(), fetchCurrentMode()])
       } catch (error) {
-        console.error("Error loading data:", error)
+        // Silent fail
       }
-
       setLoading(false)
     }
     loadData()
-
     const interval = setInterval(() => {
       fetchPackages()
       fetchCurrentMode()
     }, 30000)
-
     return () => clearInterval(interval)
   }, [])
 
@@ -214,120 +209,67 @@ export default function StorePage() {
 
   const fetchCurrentMode = async () => {
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-      const response = await fetch("/api/price-mode", {
-        cache: "no-store",
-        signal: controller.signal,
-        credentials: "include",
-      })
-
-      clearTimeout(timeoutId)
-
+      const response = await fetch("/api/price-mode", { cache: "no-store", credentials: "include" })
       if (response.ok) {
         const data = await response.json()
         setCurrentMode(data.mode || "normal")
       }
     } catch (error) {
-      console.error("Error fetching current mode:", error)
+      // Silent fail
     }
   }
 
   const fetchPackages = async () => {
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
-
       const response = await fetch("/api/packages", {
         cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache",
-        },
+        headers: { "Cache-Control": "no-cache" },
         credentials: "include",
-        signal: controller.signal,
       })
-
-      clearTimeout(timeoutId)
-
       if (response.ok) {
         const packagesData = await response.json()
-
         if (Array.isArray(packagesData) && packagesData.length > 0) {
           setPackages(packagesData)
-
           if (selectedPackage) {
             const updatedPackage = packagesData.find((pkg: CreditPackage) => pkg.id === selectedPackage.id)
-            if (updatedPackage) {
-              setSelectedPackage(updatedPackage)
-            }
+            if (updatedPackage) setSelectedPackage(updatedPackage)
           }
         }
       }
     } catch (error) {
-      console.error("Error fetching packages:", error)
+      // Silent fail
     }
   }
 
   const fetchServers = async () => {
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-      const response = await fetch("/api/servers", {
-        signal: controller.signal,
-        credentials: "include",
-      })
-
-      clearTimeout(timeoutId)
-
+      const response = await fetch("/api/servers", { credentials: "include" })
       if (response.ok) {
         const data = await response.json()
-        if (Array.isArray(data) && data.length > 0) {
-          setServers(data)
-        }
+        if (Array.isArray(data) && data.length > 0) setServers(data)
       }
     } catch (error) {
-      console.error("Error fetching servers:", error)
+      // Silent fail
     }
   }
 
   const checkUserLink = async () => {
     if (!user || !selectedServer) return
-
     setCheckingLink(true)
     try {
-      const discordId = user.user_metadata?.provider_id || user.user_metadata?.sub || user.id
-
-      console.log("🔍 Checking user link with:", {
-        discordId,
-        serverId: selectedServer,
-        userMetadata: user.user_metadata,
-        userId: user.id,
-      })
-
       const response = await fetch("/api/check-link", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          serverId: selectedServer,
-        }),
+        body: JSON.stringify({ serverId: selectedServer }),
       })
-
       const data = await response.json()
-      console.log("📤 Link check response:", data)
-
       if (response.ok) {
         setLinkStatus(data)
       } else {
-        console.error("❌ Link check failed:", data)
         setLinkStatus({ isLinked: false, username: null })
       }
     } catch (error) {
-      console.error("💥 Error checking link:", error)
       setLinkStatus({ isLinked: false, username: null })
     } finally {
       setCheckingLink(false)
@@ -339,16 +281,10 @@ export default function StorePage() {
       signInWithDiscord()
       return
     }
-
     if (!selectedPackage || !selectedServer) {
-      toast({
-        title: "Missing Information",
-        description: "Please select a package and server",
-        variant: "destructive",
-      })
+      toast({ title: "Missing Information", description: "Please select a package and server", variant: "destructive" })
       return
     }
-
     if (!linkStatus?.isLinked) {
       toast({
         title: "Account Not Linked",
@@ -357,24 +293,15 @@ export default function StorePage() {
       })
       return
     }
-
     setPurchasing(true)
-
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          packageId: selectedPackage.id,
-          serverId: selectedServer,
-        }),
+        body: JSON.stringify({ packageId: selectedPackage.id, serverId: selectedServer }),
       })
-
       const data = await response.json()
-
       if (response.ok) {
         if (data.demo) {
           setIsDemo(true)
@@ -393,12 +320,7 @@ export default function StorePage() {
         })
       }
     } catch (error) {
-      console.error("Purchase error:", error)
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "An unexpected error occurred", variant: "destructive" })
     } finally {
       setPurchasing(false)
     }
@@ -445,7 +367,6 @@ export default function StorePage() {
       <div className="sigma-bg-effect" />
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-6 md:py-8">
-        {/* Demo Mode Alert */}
         {isDemo && (
           <Alert className="mb-6 border-green-600 bg-green-500 bg-opacity-10 rounded-xl">
             <CheckCircle className="h-4 w-4 text-green-400" />
@@ -455,8 +376,6 @@ export default function StorePage() {
             </AlertDescription>
           </Alert>
         )}
-
-        {/* Hero Section */}
         <div className="text-center mb-8 md:mb-12 sigma-slide-in">
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-black mb-4 md:mb-6 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 bg-clip-text text-transparent">
             WARFARE STORE
@@ -464,8 +383,6 @@ export default function StorePage() {
           <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
             Buy credits, spend them on exclusive items, and dominate across all Warfare servers
           </p>
-
-          {/* Feature Icons - Mobile First */}
           <div className="flex justify-center space-x-6 md:space-x-12 mb-8 md:mb-12 sigma-slide-in-delay">
             <div className="text-center group">
               <div className="sigma-feature instant mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
@@ -489,8 +406,6 @@ export default function StorePage() {
               <p className="text-xs md:text-sm text-gray-400">Exclusive</p>
             </div>
           </div>
-
-          {/* Price Mode Banner */}
           {currentModeInfo && (
             <div className="mb-6 md:mb-8">
               <div
@@ -503,8 +418,6 @@ export default function StorePage() {
             </div>
           )}
         </div>
-
-        {/* Store Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6 md:mb-8 bg-gray-900 border-gray-800 h-12 md:h-14">
             <TabsTrigger value="buy-credits" className="data-[state=active]:bg-gray-800 text-sm md:text-base font-bold">
@@ -519,24 +432,18 @@ export default function StorePage() {
               SPEND CREDITS
             </TabsTrigger>
           </TabsList>
-
           <TabsContent value="buy-credits">
             <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
-              {/* Credit Packages */}
               <div className="lg:col-span-2 order-2 lg:order-1">
                 <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-white">CHOOSE YOUR PACKAGE</h2>
-
                 <div className="sigma-grid">
                   {packages.map((pkg, index) => (
                     <Card
                       key={pkg.id}
-                      className={`cursor-pointer transition-all duration-300 relative overflow-hidden ${
-                        selectedPackage?.id === pkg.id ? "sigma-card selected" : "sigma-card"
-                      }`}
+                      className={`cursor-pointer transition-all duration-300 relative overflow-hidden ${selectedPackage?.id === pkg.id ? "sigma-card selected" : "sigma-card"}`}
                       onClick={() => setSelectedPackage(pkg)}
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
-                      {/* Badges */}
                       <div className="absolute top-3 right-3 flex flex-col gap-1">
                         {pkg.popular && (
                           <Badge className="sigma-badge popular text-xs">
@@ -557,7 +464,6 @@ export default function StorePage() {
                           </Badge>
                         )}
                       </div>
-
                       <CardHeader className="pb-3 md:pb-4">
                         <CardTitle className="text-lg md:text-xl font-bold text-white mb-2 pr-16 md:pr-20">
                           {pkg.name}
@@ -572,7 +478,6 @@ export default function StorePage() {
                           </Badge>
                         </div>
                       </CardHeader>
-
                       <CardContent>
                         <div className="flex items-center justify-between mb-3 md:mb-4">
                           <div className="flex items-center gap-2 md:gap-3">
@@ -587,15 +492,11 @@ export default function StorePage() {
                             ${((pkg.price / pkg.credits) * 1000).toFixed(2)} per 1K
                           </div>
                         </div>
-
-                        {/* Savings indicator */}
                         {pkg.discount && (
                           <div className="text-sm text-yellow-400 font-semibold mb-3">
                             💰 SAVE ${(pkg.originalPrice! - pkg.price).toFixed(2)}!
                           </div>
                         )}
-
-                        {/* Value Progress Bar */}
                         <div className="sigma-progress">
                           <div
                             className="sigma-progress-fill"
@@ -607,8 +508,6 @@ export default function StorePage() {
                   ))}
                 </div>
               </div>
-
-              {/* Order Summary - Moved to top on mobile */}
               <div className="lg:col-span-1 order-1 lg:order-2">
                 <Card className="sigma-card lg:sticky lg:top-24 mb-6 lg:mb-0">
                   <CardHeader>
@@ -648,9 +547,7 @@ export default function StorePage() {
                             )}
                           </div>
                         </div>
-
                         <Separator className="bg-gray-700" />
-
                         <div>
                           <label className="block text-sm font-semibold mb-3 text-white">SELECT SERVER</label>
                           <Select value={selectedServer} onValueChange={setSelectedServer}>
@@ -674,8 +571,6 @@ export default function StorePage() {
                               ))}
                             </SelectContent>
                           </Select>
-
-                          {/* Link Status */}
                           {user && selectedServer && (
                             <div className="mt-4">
                               {checkingLink ? (
@@ -705,9 +600,7 @@ export default function StorePage() {
                             </div>
                           )}
                         </div>
-
                         <Separator className="bg-gray-700" />
-
                         <div className="space-y-3">
                           <div className="flex justify-between text-gray-300">
                             <span>Subtotal:</span>
@@ -726,7 +619,6 @@ export default function StorePage() {
                             <span className="sigma-price">${selectedPackage.price.toFixed(2)}</span>
                           </div>
                         </div>
-
                         <Button
                           onClick={handlePurchase}
                           className="w-full sigma-button py-3 text-sm md:text-base"
@@ -747,8 +639,6 @@ export default function StorePage() {
                             "PURCHASE NOW"
                           )}
                         </Button>
-
-                        {/* Trust indicators */}
                         <div className="grid grid-cols-3 gap-2 md:gap-4 pt-4 border-t border-gray-700">
                           <div className="text-center">
                             <div className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 rounded-lg bg-white bg-opacity-20 flex items-center justify-center">
@@ -782,10 +672,8 @@ export default function StorePage() {
               </div>
             </div>
           </TabsContent>
-
           <TabsContent value="spend-credits">
             <div className="max-w-4xl mx-auto">
-              {/* Coming Soon Header */}
               <div className="text-center mb-8 md:mb-12">
                 <div className="inline-flex items-center gap-3 px-4 md:px-6 py-2 md:py-3 rounded-full bg-white bg-opacity-15 border border-white text-white backdrop-blur-sm mb-4 md:mb-6">
                   <Construction className="w-4 h-4 md:w-5 md:h-5" />
@@ -798,8 +686,6 @@ export default function StorePage() {
                   All features are fully operational on Discord. WebApp version coming soon for even easier access.
                 </p>
               </div>
-
-              {/* Available Now Section */}
               <div className="mb-8">
                 <h3 className="text-xl font-bold text-yellow-400 mb-4 flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" />
@@ -824,8 +710,6 @@ export default function StorePage() {
                   })}
                 </div>
               </div>
-
-              {/* Coming Soon Section */}
               <div className="mb-8">
                 <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                   <Clock className="w-5 h-5" />
@@ -850,8 +734,6 @@ export default function StorePage() {
                   })}
                 </div>
               </div>
-
-              {/* Discord CTA */}
               <Card className="sigma-card">
                 <CardHeader className="text-center">
                   <CardTitle className="flex items-center justify-center gap-3 text-lg md:text-xl text-white">

@@ -33,13 +33,13 @@ export async function POST(request: Request) {
       .single()
 
     if (error || !data) {
-      console.warn(`No link found for discordId: ${discordId} on server: ${serverId}`, error)
+      // Don't log potentially sensitive info
       return NextResponse.json({ isLinked: false, username: null })
     }
 
     return NextResponse.json({ isLinked: true, username: data.username })
   } catch (error) {
-    console.error("Error checking link:", error)
+    // Don't log error to console
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

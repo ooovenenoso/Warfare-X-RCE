@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { ErrorHandler } from "@/components/error-handler"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -21,23 +22,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Suppress ResizeObserver errors
-              window.addEventListener('error', function(e) {
-                if (e.message && e.message.includes('ResizeObserver loop completed with undelivered notifications')) {
-                  e.stopImmediatePropagation();
-                }
-              });
-            `,
-          }}
-        />
-      </head>
+      <head />
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
+            <ErrorHandler />
             {children}
             <Toaster />
           </AuthProvider>

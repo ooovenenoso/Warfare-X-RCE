@@ -15,8 +15,6 @@ export async function POST(request: NextRequest) {
     } = await sessionClient.auth.getUser()
 
     const sessionDiscordId = user?.user_metadata?.provider_id || user?.user_metadata?.sub || user?.id
-    const userId = user?.id || null
-
     const finalDiscordId = discordId || sessionDiscordId || "unknown"
 
     if (!packageId || !serverId) {
@@ -25,8 +23,6 @@ export async function POST(request: NextRequest) {
 
     // Check if Stripe is configured
     if (!process.env.STRIPE_SECRET_KEY) {
-      console.log("Stripe not configured - using demo mode")
-
       // Demo mode - simulate successful purchase
       const demoTransaction = {
         id: "demo-" + Date.now(),
@@ -46,7 +42,7 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({ sessionId: "demo-session-" + Date.now() }),
         })
       } catch (error) {
-        console.error("Demo webhook error:", error)
+        // Silent fail for demo webhook
       }
 
       return NextResponse.json({
@@ -112,12 +108,12 @@ export async function POST(request: NextRequest) {
     })
 
     if (transactionError) {
-      console.error("Error creating transaction:", transactionError)
+      // Don't log error
     }
 
     return NextResponse.json({ url: session.url })
   } catch (error) {
-    console.error("Error creating checkout session:", error)
+    // Don't log error
     return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })
   }
 }
