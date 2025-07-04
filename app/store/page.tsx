@@ -168,6 +168,8 @@ const comingSoonFeatures = [
 export default function StorePage() {
   const { user, signInWithDiscord } = useAuth()
   const { toast } = useToast()
+
+  // Usar el hook para manejar errores de ResizeObserver
   useResizeObserverErrorHandler()
 
   const [packages, setPackages] = useState<CreditPackage[]>(mockPackagesData)
@@ -189,7 +191,7 @@ export default function StorePage() {
       try {
         await Promise.race([Promise.all([fetchPackages(), fetchServers(), fetchCurrentMode()]), timeoutPromise])
       } catch (error) {
-        console.error("Error loading data:", error)
+        // Error silencioso
       }
 
       setLoading(false)
@@ -230,7 +232,7 @@ export default function StorePage() {
         setCurrentMode(data.mode || "normal")
       }
     } catch (error) {
-      console.error("Error fetching current mode:", error)
+      // Error silencioso
     }
   }
 
@@ -265,7 +267,7 @@ export default function StorePage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching packages:", error)
+      // Error silencioso
     }
   }
 
@@ -288,7 +290,7 @@ export default function StorePage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching servers:", error)
+      // Error silencioso
     }
   }
 
@@ -297,15 +299,6 @@ export default function StorePage() {
 
     setCheckingLink(true)
     try {
-      const discordId = user.user_metadata?.provider_id || user.user_metadata?.sub || user.id
-
-      console.log("🔍 Checking user link with:", {
-        discordId,
-        serverId: selectedServer,
-        userMetadata: user.user_metadata,
-        userId: user.id,
-      })
-
       const response = await fetch("/api/check-link", {
         method: "POST",
         headers: {
@@ -318,16 +311,13 @@ export default function StorePage() {
       })
 
       const data = await response.json()
-      console.log("📤 Link check response:", data)
 
       if (response.ok) {
         setLinkStatus(data)
       } else {
-        console.error("❌ Link check failed:", data)
         setLinkStatus({ isLinked: false, username: null })
       }
     } catch (error) {
-      console.error("💥 Error checking link:", error)
       setLinkStatus({ isLinked: false, username: null })
     } finally {
       setCheckingLink(false)
@@ -393,7 +383,6 @@ export default function StorePage() {
         })
       }
     } catch (error) {
-      console.error("Purchase error:", error)
       toast({
         title: "Error",
         description: "An unexpected error occurred",

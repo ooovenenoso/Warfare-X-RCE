@@ -1,8 +1,12 @@
 "use client"
 
-import type React from "react"
+import type { ReactNode } from "react"
 
-export function PinGuard({ children }: { children: React.ReactNode }) {
-  // PIN system disabled - always allow access
+interface PinGuardProps {
+  children: ReactNode
+}
+
+export function PinGuard({ children }: PinGuardProps) {
+  // Permitir acceso directo sin verificación de PIN
   return <>{children}</>
 }
