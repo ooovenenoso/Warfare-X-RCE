@@ -33,7 +33,6 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useToast } from "@/components/ui/use-toast"
-import { useResizeObserverErrorHandler } from "@/hooks/use-resize-observer-error-handler"
 import { Loader } from "@/components/loader"
 
 interface CreditPackage {
@@ -168,7 +167,6 @@ const comingSoonFeatures = [
 export default function StorePage() {
   const { user, signInWithDiscord } = useAuth()
   const { toast } = useToast()
-  useResizeObserverErrorHandler()
 
   const [packages, setPackages] = useState<CreditPackage[]>(mockPackagesData)
   const [servers, setServers] = useState<Server[]>(mockServers)
@@ -192,10 +190,12 @@ export default function StorePage() {
       setLoading(false)
     }
     loadData()
+
     const interval = setInterval(() => {
       fetchPackages()
       fetchCurrentMode()
     }, 30000)
+
     return () => clearInterval(interval)
   }, [])
 

@@ -22,11 +22,50 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Suprimir errores de ResizeObserver ANTES de que React se monte
+              (function() {
+                const originalError = window.onerror;
+                const originalUnhandledRejection = window.onunhandledrejection;
+                
+                window.onerror = function(message, source, lineno, colno, error) {
+                  if (typeof message === 'string' && (
+                    message.includes('ResizeObserver') ||
+                    message.includes('loop completed') ||
+                    message.includes('undelivered notifications')
+                  )) {
+                    return true; // Prevenir que se muestre el error
+                  }
+                  if (originalError) {
+                    return originalError.apply(this, arguments);
+                  }
+                  return false;
+                };
+                
+                window.onunhandledrejection = function(event) {
+                  const message = String(event.reason);
+                  if (message.includes('ResizeObserver') || 
+                      message.includes('loop completed') || 
+                      message.includes('undelivered notifications')) {
+                    event.preventDefault();
+                    return;
+                  }
+                  if (originalUnhandledRejection) {
+                    return originalUnhandledRejection.apply(this, arguments);
+                  }
+                };
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={inter.className}>
+        <ErrorHandler />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            <ErrorHandler />
             {children}
             <Toaster />
           </AuthProvider>
