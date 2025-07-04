@@ -10,8 +10,15 @@ import { ErrorHandler } from "@/components/error-handler"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "CNQR Credits Store",
-  description: "Buy credits for CNQR servers",
+  title: "CNQR x LOTUS - Warfare Store",
+  description: "Buy credits, spend them on exclusive items, and dominate across all Warfare servers",
+  keywords: ["gaming", "credits", "store", "warfare", "discord"],
+  authors: [{ name: "CNQR x LOTUS" }],
+  openGraph: {
+    title: "CNQR x LOTUS - Warfare Store",
+    description: "Buy credits, spend them on exclusive items, and dominate across all Warfare servers",
+    type: "website",
+  },
     generator: 'v0.dev'
 }
 
@@ -26,37 +33,73 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Suprimir errores de ResizeObserver ANTES de que React se monte
+              // Aggressive ResizeObserver error suppression - runs before React
               (function() {
-                const originalError = window.onerror;
-                const originalUnhandledRejection = window.onunhandledrejection;
+                const originalError = console.error;
+                const originalWarn = console.warn;
                 
-                window.onerror = function(message, source, lineno, colno, error) {
-                  if (typeof message === 'string' && (
-                    message.includes('ResizeObserver') ||
-                    message.includes('loop completed') ||
-                    message.includes('undelivered notifications')
-                  )) {
-                    return true; // Prevenir que se muestre el error
-                  }
-                  if (originalError) {
-                    return originalError.apply(this, arguments);
-                  }
-                  return false;
-                };
-                
-                window.onunhandledrejection = function(event) {
-                  const message = String(event.reason);
+                console.error = function(...args) {
+                  const message = args.join(' ');
                   if (message.includes('ResizeObserver') || 
-                      message.includes('loop completed') || 
-                      message.includes('undelivered notifications')) {
-                    event.preventDefault();
+                      message.includes('resize observer') || 
+                      message.includes('loop completed with undelivered notifications')) {
                     return;
                   }
-                  if (originalUnhandledRejection) {
-                    return originalUnhandledRejection.apply(this, arguments);
-                  }
+                  originalError.apply(console, args);
                 };
+                
+                console.warn = function(...args) {
+                  const message = args.join(' ');
+                  if (message.includes('ResizeObserver') || 
+                      message.includes('resize observer')) {
+                    return;
+                  }
+                  originalWarn.apply(console, args);
+                };
+
+                // Override ResizeObserver before any components load
+                if (typeof ResizeObserver !== 'undefined') {
+                  const OriginalResizeObserver = ResizeObserver;
+                  ResizeObserver = class extends OriginalResizeObserver {
+                    constructor(callback) {
+                      const safeCallback = (entries, observer) => {
+                        try {
+                          requestAnimationFrame(() => {
+                            try {
+                              callback(entries, observer);
+                            } catch (e) {
+                              // Silent fail
+                            }
+                          });
+                        } catch (e) {
+                          // Silent fail
+                        }
+                      };
+                      super(safeCallback);
+                    }
+                  };
+                }
+
+                // Global error suppression
+                window.addEventListener('error', function(event) {
+                  if (event.message && (
+                    event.message.includes('ResizeObserver') ||
+                    event.message.includes('resize observer') ||
+                    event.message.includes('loop completed with undelivered notifications')
+                  )) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    return false;
+                  }
+                }, true);
+
+                window.addEventListener('unhandledrejection', function(event) {
+                  const reason = event.reason ? event.reason.toString() : '';
+                  if (reason.includes('ResizeObserver') || reason.includes('resize observer')) {
+                    event.preventDefault();
+                    return false;
+                  }
+                }, true);
               })();
             `,
           }}
@@ -64,7 +107,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ErrorHandler />
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           <AuthProvider>
             {children}
             <Toaster />

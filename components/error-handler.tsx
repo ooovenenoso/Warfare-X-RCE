@@ -8,105 +8,94 @@ import { useEffect } from "react"
  */
 export function ErrorHandler() {
   useEffect(() => {
-    // Función para suprimir errores de ResizeObserver de manera agresiva
+    // Comprehensive error suppression for ResizeObserver
     const suppressResizeObserverErrors = () => {
-      // Sobrescribir ResizeObserver completamente
-      const OriginalResizeObserver = window.ResizeObserver
+      // Override console methods
+      const originalError = console.error
+      const originalWarn = console.warn
 
-      class SafeResizeObserver extends OriginalResizeObserver {
-        constructor(callback: ResizeObserverCallback) {
-          const safeCallback: ResizeObserverCallback = (entries, observer) => {
-            requestAnimationFrame(() => {
-              try {
-                callback(entries, observer)
-              } catch (error) {
-                // Silenciar completamente
-              }
-            })
-          }
-          super(safeCallback)
-        }
-      }
-
-      window.ResizeObserver = SafeResizeObserver
-
-      // Interceptar TODOS los errores posibles
-      const errorHandler = (event: any) => {
-        const message = event.message || event.error?.message || String(event.reason || "")
-
+      console.error = (...args) => {
+        const message = args.join(" ")
         if (
           message.includes("ResizeObserver") ||
-          message.includes("loop completed") ||
-          message.includes("undelivered notifications") ||
           message.includes("resize observer") ||
-          message.toLowerCase().includes("resizeobserver")
+          message.includes("loop completed with undelivered notifications") ||
+          message.includes("loop limit exceeded")
         ) {
-          event.stopImmediatePropagation?.()
-          event.preventDefault?.()
+          return // Completely suppress
+        }
+        originalError.apply(console, args)
+      }
+
+      console.warn = (...args) => {
+        const message = args.join(" ")
+        if (message.includes("ResizeObserver") || message.includes("resize observer")) {
+          return // Completely suppress
+        }
+        originalWarn.apply(console, args)
+      }
+
+      // Global error handlers
+      const handleGlobalError = (event: ErrorEvent) => {
+        if (
+          event.message?.includes("ResizeObserver") ||
+          event.message?.includes("resize observer") ||
+          event.message?.includes("loop completed with undelivered notifications")
+        ) {
+          event.preventDefault()
+          event.stopImmediatePropagation()
           return false
         }
       }
 
-      // Agregar listeners a TODOS los eventos de error posibles
-      window.addEventListener("error", errorHandler, { capture: true, passive: false })
-      window.addEventListener("unhandledrejection", errorHandler, { passive: false })
-      document.addEventListener("error", errorHandler, { capture: true, passive: false })
-
-      // Interceptar también en el objeto global
-      if (typeof globalThis !== "undefined") {
-        globalThis.addEventListener?.("error", errorHandler, { capture: true, passive: false })
-      }
-
-      // Sobrescribir métodos de console de manera más agresiva
-      const originalMethods = {
-        error: console.error,
-        warn: console.warn,
-        log: console.log,
-      }
-
-      const filterConsoleOutput = (originalMethod: Function) => {
-        return (...args: any[]) => {
-          const message = args.join(" ").toLowerCase()
-          if (
-            message.includes("resizeobserver") ||
-            message.includes("loop completed") ||
-            message.includes("undelivered notifications")
-          ) {
-            return // Completamente silenciado
-          }
-          originalMethod.apply(console, args)
+      const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+        const reason = event.reason?.toString() || ""
+        if (reason.includes("ResizeObserver") || reason.includes("resize observer")) {
+          event.preventDefault()
+          return false
         }
       }
 
-      console.error = filterConsoleOutput(originalMethods.error)
-      console.warn = filterConsoleOutput(originalMethods.warn)
-      console.log = filterConsoleOutput(originalMethods.log)
+      // Add listeners to all possible targets
+      window.addEventListener("error", handleGlobalError, true)
+      document.addEventListener("error", handleGlobalError, true)
+      window.addEventListener("unhandledrejection", handleUnhandledRejection, true)
 
-      // Cleanup function
+      // Override ResizeObserver constructor
+      if (typeof window !== "undefined" && window.ResizeObserver) {
+        const OriginalResizeObserver = window.ResizeObserver
+
+        window.ResizeObserver = class extends OriginalResizeObserver {
+          constructor(callback: ResizeObserverCallback) {
+            const safeCallback: ResizeObserverCallback = (entries, observer) => {
+              try {
+                // Use requestAnimationFrame to prevent loop issues
+                requestAnimationFrame(() => {
+                  try {
+                    callback(entries, observer)
+                  } catch (error) {
+                    // Silently ignore
+                  }
+                })
+              } catch (error) {
+                // Silently ignore
+              }
+            }
+            super(safeCallback)
+          }
+        }
+      }
+
       return () => {
-        window.removeEventListener("error", errorHandler, { capture: true })
-        window.removeEventListener("unhandledrejection", errorHandler)
-        document.removeEventListener("error", errorHandler, { capture: true })
-
-        // Restaurar métodos originales
-        console.error = originalMethods.error
-        console.warn = originalMethods.warn
-        console.log = originalMethods.log
-
-        // Restaurar ResizeObserver original
-        window.ResizeObserver = OriginalResizeObserver
+        console.error = originalError
+        console.warn = originalWarn
+        window.removeEventListener("error", handleGlobalError, true)
+        document.removeEventListener("error", handleGlobalError, true)
+        window.removeEventListener("unhandledrejection", handleUnhandledRejection, true)
       }
     }
 
-    // Ejecutar inmediatamente y también después de que el DOM esté listo
-    const cleanup = suppressResizeObserverErrors()
-
-    // También ejecutar cuando el documento esté completamente cargado
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", suppressResizeObserverErrors)
-    }
-
-    return cleanup
+    return suppressResizeObserverErrors()
   }, [])
 
   return null

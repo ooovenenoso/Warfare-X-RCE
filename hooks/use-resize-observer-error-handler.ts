@@ -4,98 +4,80 @@ import { useEffect } from "react"
 
 export function useResizeObserverErrorHandler() {
   useEffect(() => {
-    // Sobrescribir ResizeObserver globalmente para controlar los errores
-    const OriginalResizeObserver = window.ResizeObserver
+    // Aggressive error suppression
+    const originalError = console.error
+    const originalWarn = console.warn
+    const originalLog = console.log
 
-    window.ResizeObserver = class extends OriginalResizeObserver {
-      constructor(callback: ResizeObserverCallback) {
-        const wrappedCallback: ResizeObserverCallback = (entries, observer) => {
-          try {
-            callback(entries, observer)
-          } catch (error) {
-            // Suprimir silenciosamente todos los errores de ResizeObserver
-            if (error instanceof Error && error.message.includes("ResizeObserver")) {
-              return
+    console.error = (...args) => {
+      const message = args.join(" ")
+      if (
+        message.includes("ResizeObserver") ||
+        message.includes("resize observer") ||
+        message.includes("loop completed with undelivered notifications") ||
+        message.includes("loop limit exceeded")
+      ) {
+        return // Suppress ResizeObserver errors completely
+      }
+      originalError.apply(console, args)
+    }
+
+    console.warn = (...args) => {
+      const message = args.join(" ")
+      if (message.includes("ResizeObserver") || message.includes("resize observer")) {
+        return // Suppress ResizeObserver warnings
+      }
+      originalWarn.apply(console, args)
+    }
+
+    // Override ResizeObserver globally
+    if (typeof window !== "undefined") {
+      const OriginalResizeObserver = window.ResizeObserver
+
+      window.ResizeObserver = class extends OriginalResizeObserver {
+        constructor(callback: ResizeObserverCallback) {
+          const wrappedCallback: ResizeObserverCallback = (entries, observer) => {
+            try {
+              callback(entries, observer)
+            } catch (error) {
+              // Silently ignore ResizeObserver errors
             }
-            throw error
           }
+          super(wrappedCallback)
         }
-        super(wrappedCallback)
       }
-    }
 
-    // Interceptar todos los tipos de errores
-    const handleError = (e: ErrorEvent) => {
-      if (
-        e.message?.includes("ResizeObserver") ||
-        e.message?.includes("loop completed") ||
-        e.message?.includes("undelivered notifications") ||
-        e.error?.message?.includes("ResizeObserver")
-      ) {
-        e.stopImmediatePropagation()
-        e.preventDefault()
-        return false
+      // Additional error handlers
+      const handleError = (event: ErrorEvent) => {
+        if (
+          event.message?.includes("ResizeObserver") ||
+          event.message?.includes("resize observer") ||
+          event.message?.includes("loop completed with undelivered notifications")
+        ) {
+          event.preventDefault()
+          event.stopPropagation()
+          return false
+        }
       }
-    }
 
-    const handleUnhandledRejection = (e: PromiseRejectionEvent) => {
-      if (
-        e.reason?.message?.includes("ResizeObserver") ||
-        e.reason?.toString?.()?.includes("ResizeObserver") ||
-        String(e.reason).includes("ResizeObserver")
-      ) {
-        e.preventDefault()
-        return false
+      const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+        const reason = event.reason?.toString() || ""
+        if (reason.includes("ResizeObserver") || reason.includes("resize observer")) {
+          event.preventDefault()
+          return false
+        }
       }
-    }
 
-    // Sobrescribir console.error para filtrar mensajes de ResizeObserver
-    const originalConsoleError = console.error
-    console.error = (...args: any[]) => {
-      const message = args.join(" ")
-      if (
-        message.includes("ResizeObserver") ||
-        message.includes("loop completed") ||
-        message.includes("undelivered notifications")
-      ) {
-        return // No mostrar estos errores
+      window.addEventListener("error", handleError, true)
+      window.addEventListener("unhandledrejection", handleUnhandledRejection, true)
+
+      return () => {
+        console.error = originalError
+        console.warn = originalWarn
+        console.log = originalLog
+        window.removeEventListener("error", handleError, true)
+        window.removeEventListener("unhandledrejection", handleUnhandledRejection, true)
       }
-      originalConsoleError.apply(console, args)
-    }
-
-    // Sobrescribir console.warn también
-    const originalConsoleWarn = console.warn
-    console.warn = (...args: any[]) => {
-      const message = args.join(" ")
-      if (
-        message.includes("ResizeObserver") ||
-        message.includes("loop completed") ||
-        message.includes("undelivered notifications")
-      ) {
-        return // No mostrar estos warnings
-      }
-      originalConsoleWarn.apply(console, args)
-    }
-
-    // Agregar múltiples listeners para capturar todos los casos
-    window.addEventListener("error", handleError, { capture: true, passive: false })
-    window.addEventListener("unhandledrejection", handleUnhandledRejection, { passive: false })
-
-    // También interceptar en el nivel del documento
-    document.addEventListener("error", handleError, { capture: true, passive: false })
-
-    // Cleanup
-    return () => {
-      window.removeEventListener("error", handleError, { capture: true })
-      window.removeEventListener("unhandledrejection", handleUnhandledRejection)
-      document.removeEventListener("error", handleError, { capture: true })
-
-      // Restaurar console original
-      console.error = originalConsoleError
-      console.warn = originalConsoleWarn
-
-      // Restaurar ResizeObserver original
-      window.ResizeObserver = OriginalResizeObserver
     }
   }, [])
 }
