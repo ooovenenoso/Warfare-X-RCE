@@ -25,7 +25,7 @@ const mockPackages = [
     description: "Most popular choice",
     popular: true,
     icon: Star,
-    features: ["2,500 Credits", "Priority Support", "Bonus Items", "Instant Delivery"],
+    features: ["2,500 Credits", "Priority Support", "Instant Delivery"],
   },
   {
     id: "3",
@@ -35,7 +35,7 @@ const mockPackages = [
     description: "For serious gamers",
     popular: false,
     icon: Crown,
-    features: ["6,000 Credits", "VIP Support", "Exclusive Items", "Early Access"],
+    features: ["6,000 Credits", "VIP Support", "Early Access"],
   },
   {
     id: "4",
@@ -45,7 +45,7 @@ const mockPackages = [
     description: "Maximum value",
     popular: false,
     icon: Gem,
-    features: ["15,000 Credits", "Premium Support", "All Perks", "Custom Items"],
+    features: ["15,000 Credits", "Premium Support", "All Perks"],
   },
 ]
 
@@ -116,7 +116,11 @@ export function PackageShowcase() {
 
         <div className="text-center mt-12">
           <p className="text-gray-400 mb-4">Need a custom package?</p>
-          <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-black">
+          <Button
+            variant="outline"
+            size="lg"
+            className="border-primary text-primary hover:bg-primary hover:text-black bg-transparent"
+          >
             Contact Support
           </Button>
         </div>
