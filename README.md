@@ -6,7 +6,7 @@
 
 ## Overview
 
-Warfare X RCE (Rust Console Edition) WebApp is a full-stack platform for the Warfare X community on Rust Console Edition. Built with Next.js and Supabase, it lets players purchase credits and in-game kits, while providing administrators with real-time sales analytics and package management tools.
+Warfare X RCE (Rust Console Edition) WebApp is a full-stack platform for the Warfare community on Rust Console Edition. Built with Next.js and Supabase, it lets players purchase credits and in-game kits, while providing administrators with real-time sales analytics and package management tools.
 
 ### Features
 
