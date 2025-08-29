@@ -1,30 +1,66 @@
-# cnqr x lotus
+# Warfare X RCE WebApp
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
-
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/ooovenenosos-projects/v0-cnqr-x-lotus)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/xEtbTKjbRsM)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
 
 ## Overview
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+Warfare X RCE WebApp is a modern Next.js application designed for experimenting with remote code execution (RCE) scenarios. The project provides a flexible foundation for building security tooling, demos, or training environments.
+
+This repository stays in sync with deployments from [v0.dev](https://v0.dev). Any changes pushed to your deployed chat on v0 will automatically appear here, and can then be redeployed to platforms like Vercel.
+
+## Tech Stack
+
+- **Framework:** [Next.js 15](https://nextjs.org)
+- **Language:** [TypeScript](https://www.typescriptlang.org)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com)
+- **UI Components:** [Radix UI](https://www.radix-ui.com) and community libraries
+- **State & Forms:** React Hooks, React Hook Form, and Zod
+
+## Getting Started
+
+### Prerequisites
+- [Node.js 18+](https://nodejs.org)
+- [pnpm](https://pnpm.io) package manager
+
+### Installation
+```bash
+pnpm install
+```
+
+### Development
+Start the development server with hot reload:
+```bash
+pnpm dev
+```
+
+### Linting
+Run type and style checks:
+```bash
+pnpm lint
+```
+
+### Production Build
+Generate an optimized production build:
+```bash
+pnpm build
+```
+
+## Project Structure
+
+- `app/` – application routes and pages
+- `components/` – reusable UI components
+- `lib/`, `hooks/`, `types/` – utility modules and TypeScript types
+- `public/` – static assets
+- `styles/` – global styles and Tailwind configuration
 
 ## Deployment
 
-Your project is live at:
+The app is ready to deploy to [Vercel](https://vercel.com) or any platform supporting Next.js. Adjust environment variables and run:
+```bash
+pnpm build && pnpm start
+```
 
-**[https://vercel.com/ooovenenosos-projects/v0-cnqr-x-lotus](https://vercel.com/ooovenenosos-projects/v0-cnqr-x-lotus)**
+## Contributing
 
-## Build your app
+Contributions are welcome! Feel free to open issues or submit pull requests to enhance Warfare X RCE WebApp.
 
-Continue building your app on:
-
-**[https://v0.dev/chat/projects/xEtbTKjbRsM](https://v0.dev/chat/projects/xEtbTKjbRsM)**
-
-## How It Works
-
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
