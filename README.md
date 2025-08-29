@@ -2,6 +2,8 @@
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
 
+<img width="1513" height="907" alt="image" src="https://github.com/user-attachments/assets/5fa5b1bb-a7a8-4098-a590-1d2e0997f0cc" />
+
 ## Overview
 
 Warfare X RCE (Rust Console Edition) WebApp is a full-stack platform for the Warfare X community on Rust Console Edition. Built with Next.js and Supabase, it lets players purchase credits and in-game kits, while providing administrators with real-time sales analytics and package management tools.
