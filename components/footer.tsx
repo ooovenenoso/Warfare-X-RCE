@@ -1,124 +1,53 @@
-"use client"
-import Link from "next/link"
-import { Github, Twitter, MessageCircle, ExternalLink } from "lucide-react"
-import { useState } from "react"
-import { PrivacyPolicy } from "@/components/legal/privacy-policy"
-import { TermsOfService } from "@/components/legal/terms-of-service"
+"use client";
+
+import Link from "next/link";
+import { MessageCircle, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { PrivacyPolicy } from "@/components/legal/privacy-policy";
+import { TermsOfService } from "@/components/legal/terms-of-service";
 
 export function Footer() {
-  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false)
-  const [showTermsOfService, setShowTermsOfService] = useState(false)
-
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showTermsOfService, setShowTermsOfService] = useState(false);
   return (
     <>
-      <footer className="border-t border-gray-800 bg-black bg-opacity-80 backdrop-blur-md mt-auto">
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Brand */}
-            <div className="col-span-1 md:col-span-2">
-              <h3 className="text-xl font-bold text-primary mb-4">CNQR</h3>
-              <p className="text-gray-400 mb-4 max-w-md">
-                Powered by Lotus Dash. The ultimate gaming experience with premium credits, exclusive items, and
-                unmatched support across all servers.
-              </p>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-primary transition-colors">
-                  <Github size={20} />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-primary transition-colors">
-                  <Twitter size={20} />
-                </a>
-                <a
-                  href="https://discord.gg/playcnqr"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-[#5865F2] transition-colors"
-                >
-                  <MessageCircle size={20} />
-                </a>
-              </div>
-            </div>
-
-            {/* Quick Links */}
-            <div>
-              <h4 className="font-semibold text-white mb-4">Quick Links</h4>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="/" className="text-gray-400 hover:text-primary transition-colors">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/store" className="text-gray-400 hover:text-primary transition-colors">
-                    Store
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/admin" className="text-gray-400 hover:text-primary transition-colors">
-                    Admin Panel
-                  </Link>
-                </li>
-                <li>
-                  <a
-                    href="https://discord.gg/playcnqr"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-primary transition-colors flex items-center gap-2"
-                  >
-                    Discord Server
-                    <ExternalLink size={12} />
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Features */}
-            <div>
-              <h4 className="font-semibold text-white mb-4">Available Now</h4>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-gray-400">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-sm">Credit Purchases</span>
-                </li>
-                <li className="flex items-center gap-2 text-gray-400">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-sm">Instant Delivery</span>
-                </li>
-                <li className="flex items-center gap-2 text-gray-400">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-sm">Discord Integration</span>
-                </li>
-                <li className="flex items-center gap-2 text-gray-400">
-                  <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                  <span className="text-sm">WebApp Store (Soon)</span>
-                </li>
-              </ul>
-            </div>
+      <footer className="mt-20 border-t border-white/10 bg-black/30 backdrop-blur">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-[1.3fr_0.7fr_1fr]">
+          <div>
+            <Link href="/" className="text-lg font-black tracking-[0.16em] text-white">WARFARE <span className="text-primary">X</span></Link>
+            <p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground">Community store for Rust Console Edition. Link the correct player account and server before checkout; credits are fulfilled after payment confirmation.</p>
           </div>
-
-          <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">© 2024 CNQR. All rights reserved. Powered by Lotus Dash.</p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <button
-                onClick={() => setShowPrivacyPolicy(true)}
-                className="text-gray-400 hover:text-primary transition-colors text-sm cursor-pointer"
-              >
-                Privacy Policy
-              </button>
-              <button
-                onClick={() => setShowTermsOfService(true)}
-                className="text-gray-400 hover:text-primary transition-colors text-sm cursor-pointer"
-              >
-                Terms of Service
-              </button>
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-white">Explore</h2>
+            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+              <li><Link href="/" className="transition hover:text-primary">Home</Link></li>
+              <li><Link href="/store" className="transition hover:text-primary">Credit store</Link></li>
+              <li><Link href="/transactions" className="transition hover:text-primary">Order history</Link></li>
+              <li><a href="https://discord.gg/playcnqr" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 transition hover:text-primary">Community Discord <ExternalLink size={13} /></a></li>
+            </ul>
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-white">Before checkout</h2>
+            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+              <li>Sign in with Discord</li>
+              <li>Verify your in-game account link</li>
+              <li>Choose the matching server</li>
+              <li>Payment is processed by Stripe</li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-white/10">
+          <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <p>© {new Date().getFullYear()} Warfare X community store.</p>
+            <div className="flex gap-5">
+              <button onClick={() => setShowPrivacyPolicy(true)} className="transition hover:text-primary">Privacy</button>
+              <button onClick={() => setShowTermsOfService(true)} className="transition hover:text-primary">Terms</button>
             </div>
           </div>
         </div>
       </footer>
-
-      {/* Legal Popups */}
       <PrivacyPolicy open={showPrivacyPolicy} onOpenChange={setShowPrivacyPolicy} />
       <TermsOfService open={showTermsOfService} onOpenChange={setShowTermsOfService} />
     </>
-  )
+  );
 }

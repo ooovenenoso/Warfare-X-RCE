@@ -1,45 +1,22 @@
-import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { NextResponse } from "next/server";
+import { createStoreAdminClient, getStoreIdentity } from "@/lib/store-server";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-
-    // Get the current user
-    const {
-      data: { user: sessionUser },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !sessionUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    // Get user's transactions
-    const { data: transactions, error } = await supabase
-      .from("store_transactions")
-      .select(`
-        *,
-        credit_packages (
-          name,
-          credits
-        )
-      `)
-      .eq(
-        "discord_id",
-        sessionUser.user_metadata?.provider_id || sessionUser.id,
-      )
-      .order("created_at", { ascending: false })
-
-    if (error) {
-      console.error("Error fetching transactions:", error)
-      return NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 })
-    }
-
-    return NextResponse.json({ transactions: transactions || [] })
-  } catch (error) {
-    console.error("Error in transactions API:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    const identity = await getStoreIdentity();
+    if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const db = createStoreAdminClient();
+    const { data: storeUser, error: userError } = await db.from("users")
+      .select("id").eq("discord_id", identity.discordId).maybeSingle();
+    if (userError) throw userError;
+    if (!storeUser) return NextResponse.json({ transactions: [] }, { headers: { "Cache-Control": "no-store" } });
+    const { data, error } = await db.from("transactions")
+      .select("id, transaction_number, package_id, server_id, final_amount, credits_purchased, status, payment_status, delivery_status, created_at, completed_at, credit_packages(name, credits)")
+      .eq("user_id", storeUser.id)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return NextResponse.json({ transactions: data ?? [] }, { headers: { "Cache-Control": "no-store" } });
+  } catch {
+    return NextResponse.json({ error: "Unable to load transaction history" }, { status: 503 });
   }
 }

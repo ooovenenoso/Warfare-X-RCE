@@ -7,10 +7,10 @@ import type { User, Session, SupabaseClient } from "@supabase/auth-helpers-nextj
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 
-const ADMIN_DISCORD_IDS = process.env.NEXT_PUBLIC_ADMIN_DISCORD_IDS?.split(",") || [
-  "907231041167716352",
-  "1068270434702860358",
-]
+const ADMIN_DISCORD_IDS = (process.env.NEXT_PUBLIC_ADMIN_DISCORD_IDS ?? "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean)
 
 interface AuthContextType {
   supabase: SupabaseClient
@@ -35,7 +35,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAdminStatus = useCallback(async (user: User) => {
     try {
-      const discordId = user.user_metadata?.provider_id || user.user_metadata?.sub
+      const metadata = user.user_metadata ?? {}
+      const identity = user.identities?.find((item) => item.provider === "discord")
+      const candidates = [metadata.provider_id, metadata.sub, metadata.id, identity?.identity_data?.provider_id, identity?.identity_data?.sub, identity?.identity_data?.id]
+      const discordId = candidates.map((value) => value == null ? "" : String(value)).find((value) => /^\d{17,20}$/.test(value))
       if (!discordId) {
         setIsAdmin(false)
         return

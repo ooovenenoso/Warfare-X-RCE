@@ -4,65 +4,45 @@ on:
   pull_request:
     types: [closed]
 
+permissions:
+  contents: read
+
 jobs:
   send-discord-webhook:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-
+    env:
+      DISCORD_MERGE_WEBHOOK_URL: ${{ secrets.DISCORD_MERGE_WEBHOOK_URL }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+      REPOSITORY: ${{ github.repository }}
+      MERGE_COMMIT: ${{ github.event.pull_request.merge_commit_sha }}
     steps:
-      - name: Prepare payload data
-        id: payload
+      - name: Send merge notification
         run: |
-          # Extract necessary details from the GitHub context
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          PR_URL="${{ github.event.pull_request.html_url }}"
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          MERGE_COMMIT_SHA="${{ github.event.pull_request.merge_commit_sha }}"
-          MERGE_COMMIT_URL="https://github.com/${{ github.repository }}/commit/${MERGE_COMMIT_SHA}"
-          REPO_NAME="${{ github.repository }}"
-          TIMESTAMP=$(date --utc +'%Y-%m-%dT%H:%M:%SZ')
-
-          # Construct a Discord embed as JSON
-          cat <<EOF > payload.json
-          {
-            "username": "GitHub Merge Bot",
-            "avatar_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
-            "embeds": [
-              {
-                "title": "PR #${PR_NUMBER} merged in ${REPO_NAME}",
-                "url": "${PR_URL}",
-                "color": 5814783,
-                "fields": [
-                  {
-                    "name": "Pull Request",
-                    "value": "[#${PR_NUMBER} ${PR_TITLE}](${PR_URL})",
-                    "inline": false
-                  },
-                  {
-                    "name": "Author",
-                    "value": "${PR_AUTHOR}",
-                    "inline": true
-                  },
-                  {
-                    "name": "Merge Commit",
-                    "value": "[\`${MERGE_COMMIT_SHA:0:7}\`](${MERGE_COMMIT_URL})",
-                    "inline": true
-                  }
-                ],
-                "footer": {
-                  "text": "Repository: ${REPO_NAME}",
-                  "icon_url": "https://github.githubassets.com/favicon.ico"
-                },
-                "timestamp": "${TIMESTAMP}"
-              }
-            ]
+          if [ -z "$DISCORD_MERGE_WEBHOOK_URL" ]; then
+            echo "DISCORD_MERGE_WEBHOOK_URL is not configured; skipping notification."
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json, os, urllib.request
+          commit = os.environ.get("MERGE_COMMIT", "")
+          payload = {
+              "username": "GitHub Merge Bot",
+              "embeds": [{
+                  "title": f"PR #{os.environ['PR_NUMBER']} merged in {os.environ['REPOSITORY']}",
+                  "url": os.environ["PR_URL"],
+                  "color": 5814783,
+                  "fields": [
+                      {"name": "Pull Request", "value": f"[#{os.environ['PR_NUMBER']} {os.environ['PR_TITLE']}]({os.environ['PR_URL']})", "inline": False},
+                      {"name": "Author", "value": os.environ["PR_AUTHOR"], "inline": True},
+                      {"name": "Merge Commit", "value": commit[:7], "inline": True},
+                  ],
+              }],
           }
-          EOF
-
-      - name: Send embed to Discord
-        run: |
-          curl -H "Content-Type: application/json" \
-               -X POST \
-               -d @payload.json \
-               "https://discord.com/api/webhooks/1380291558053511238/k1rYYg345bySmtugs7Kxm5TYO6Wm9WISDP3sr5IPTK9J59WEuTE7x3Iheq_mCH1hQkKP"
+          req = urllib.request.Request(os.environ["DISCORD_MERGE_WEBHOOK_URL"], data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST")
+          with urllib.request.urlopen(req, timeout=10) as response:
+              print(f"Discord responded with HTTP {response.status}")
+          PY

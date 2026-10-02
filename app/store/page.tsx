@@ -78,64 +78,6 @@ interface ShopItem {
   duration?: string
 }
 
-const mockPackagesData: CreditPackage[] = [
-  {
-    id: "1",
-    name: "Starter Pack",
-    description: "Perfect for new players getting started",
-    credits: 1000,
-    price: 9.99,
-    basePrice: 9.99,
-    image_url: "/placeholder.svg?height=200&width=300",
-    active: true,
-    popular: false,
-    priceMode: "normal",
-  },
-  {
-    id: "2",
-    name: "Pro Pack",
-    description: "Most popular choice among players",
-    credits: 2500,
-    price: 19.99,
-    basePrice: 19.99,
-    image_url: "/placeholder.svg?height=200&width=300",
-    active: true,
-    popular: true,
-    priceMode: "normal",
-  },
-  {
-    id: "3",
-    name: "Elite Pack",
-    description: "For serious gamers who want more",
-    credits: 6000,
-    price: 39.99,
-    basePrice: 39.99,
-    image_url: "/placeholder.svg?height=200&width=300",
-    active: true,
-    popular: false,
-    priceMode: "normal",
-  },
-  {
-    id: "4",
-    name: "Ultimate Pack",
-    description: "Maximum value for hardcore players",
-    credits: 15000,
-    price: 79.99,
-    basePrice: 79.99,
-    image_url: "/placeholder.svg?height=200&width=300",
-    active: true,
-    popular: false,
-    bestValue: true,
-    priceMode: "normal",
-  },
-]
-
-const mockServers: Server[] = [
-  { id: "server1", name: "Main Server", description: "Primary gaming server", active: true },
-  { id: "server2", name: "PvP Server", description: "Player vs Player server", active: true },
-  { id: "server3", name: "Creative Server", description: "Creative building server", active: true },
-]
-
 const shopItems: ShopItem[] = [
   // PvP Kits
   {
@@ -411,17 +353,18 @@ export default function StorePage() {
   const { user, signInWithDiscord } = useAuth()
   const { toast } = useToast()
 
-  const [packages, setPackages] = useState<CreditPackage[]>(mockPackagesData)
-  const [servers, setServers] = useState<Server[]>(mockServers)
+  const [packages, setPackages] = useState<CreditPackage[]>([])
+  const [servers, setServers] = useState<Server[]>([])
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null)
   const [selectedServer, setSelectedServer] = useState<string>("")
   const [linkStatus, setLinkStatus] = useState<LinkStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [checkingLink, setCheckingLink] = useState(false)
   const [currentMode, setCurrentMode] = useState<string>("normal")
-  const [isDemo, setIsDemo] = useState(false)
   const [activeTab, setActiveTab] = useState("buy-credits")
   const [purchasing, setPurchasing] = useState(false)
+  const [packageLoadError, setPackageLoadError] = useState<string | null>(null)
+  const [serverLoadError, setServerLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -436,6 +379,7 @@ export default function StorePage() {
 
     const interval = setInterval(() => {
       fetchPackages()
+      fetchServers()
       fetchCurrentMode()
     }, 30000)
 
@@ -464,35 +408,33 @@ export default function StorePage() {
 
   const fetchPackages = async () => {
     try {
-      const response = await fetch("/api/packages", {
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache" },
-        credentials: "include",
-      })
-      if (response.ok) {
-        const packagesData = await response.json()
-        if (Array.isArray(packagesData) && packagesData.length > 0) {
-          setPackages(packagesData)
-          if (selectedPackage) {
-            const updatedPackage = packagesData.find((pkg: CreditPackage) => pkg.id === selectedPackage.id)
-            if (updatedPackage) setSelectedPackage(updatedPackage)
-          }
-        }
-      }
-    } catch (error) {
-      // Silent fail
+      const response = await fetch("/api/packages", { cache: "no-store", credentials: "include" });
+      if (!response.ok) throw new Error("Packages unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data)) throw new Error("Invalid package response");
+      setPackages(data);
+      setPackageLoadError(data.length ? null : "No credit bundles are currently listed.");
+      setSelectedPackage((current) => current ? data.find((pkg: CreditPackage) => pkg.id === current.id) ?? null : null);
+    } catch {
+      setPackages([]);
+      setSelectedPackage(null);
+      setPackageLoadError("Credit bundles could not be loaded. Please try again in a moment.");
     }
   }
 
   const fetchServers = async () => {
     try {
-      const response = await fetch("/api/servers", { credentials: "include" })
-      if (response.ok) {
-        const data = await response.json()
-        if (Array.isArray(data) && data.length > 0) setServers(data)
-      }
-    } catch (error) {
-      // Silent fail
+      const response = await fetch("/api/servers", { cache: "no-store", credentials: "include" });
+      if (!response.ok) throw new Error("Servers unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data)) throw new Error("Invalid server response");
+      setServers(data);
+      setServerLoadError(data.length ? null : "No active servers are configured yet.");
+      setSelectedServer((current) => data.some((server: Server) => server.id === current) ? current : "");
+    } catch {
+      setServers([]);
+      setSelectedServer("");
+      setServerLoadError("Server list could not be loaded. Please try again in a moment.");
     }
   }
 
@@ -521,73 +463,42 @@ export default function StorePage() {
 
   const handlePurchase = async () => {
     if (!user) {
-      signInWithDiscord()
-      return
+      void signInWithDiscord();
+      return;
     }
     if (!selectedPackage || !selectedServer) {
-      toast({ title: "Missing Information", description: "Please select a package and server", variant: "destructive" })
-      return
+      toast({ title: "Choose a bundle and server", description: "Select both before continuing to checkout.", variant: "destructive" });
+      return;
     }
     if (!linkStatus?.isLinked) {
-      toast({
-        title: "Account Not Linked",
-        description: "You must link your username in this server before purchasing credits",
-        variant: "destructive",
-      })
-      return
+      toast({ title: "Link your game account", description: "Complete the server's account-link flow, then check your link again.", variant: "destructive" });
+      return;
     }
-    setPurchasing(true)
+    setPurchasing(true);
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ packageId: selectedPackage.id, serverId: selectedServer }),
-      })
-      const data = await response.json()
-      if (response.ok) {
-        if (data.demo) {
-          setIsDemo(true)
-          toast({
-            title: "Demo Purchase Successful! 🎉",
-            description: `${selectedPackage.credits.toLocaleString()} credits added to your account! Discord notification sent.`,
-          })
-        } else if (data.url) {
-          window.location.href = data.url
-        }
-      } else {
-        toast({
-          title: "Purchase Failed",
-          description: data.error || "Failed to initiate purchase",
-          variant: "destructive",
-        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        toast({ title: "Checkout could not start", description: data.error || "Please try again or contact the Warfare X team.", variant: "destructive" });
+        return;
       }
-    } catch (error) {
-      toast({ title: "Error", description: "An unexpected error occurred", variant: "destructive" })
+      window.location.assign(data.url);
+    } catch {
+      toast({ title: "Connection error", description: "We couldn't reach checkout. Please try again.", variant: "destructive" });
     } finally {
-      setPurchasing(false)
+      setPurchasing(false);
     }
   }
 
   const getPriceModeInfo = (mode: string) => {
-    switch (mode) {
-      case "low_pop":
-        return {
-          text: "🔥 FLASH SALE - 50% OFF ALL PACKAGES",
-          color: "text-yellow-400",
-          bgColor: "bg-yellow-500",
-          description: "Limited time offer - grab it while it lasts!",
-        }
-      case "high_season":
-        return {
-          text: "⚡ HIGH DEMAND PERIOD - PREMIUM PRICING",
-          color: "text-white",
-          bgColor: "bg-white",
-          description: "Peak season pricing in effect",
-        }
-      default:
-        return null
-    }
+    if (mode === "low_pop") return { text: "Community pricing · 50% below base", color: "text-primary", bgColor: "bg-primary", description: "Reduced rates are currently active on configured bundles." };
+    if (mode === "high_season") return { text: "Peak-season pricing", color: "text-primary", bgColor: "bg-primary", description: "Peak-season rates are currently active on configured bundles." };
+    return null;
   }
 
   const groupedShopItems = shopItems.reduce(
@@ -607,7 +518,7 @@ export default function StorePage() {
         <div className="sigma-bg-effect" />
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
-          <Loader size="lg" text="Loading store..." />
+          <Loader size="lg" text="Loading the Warfare X store…" />
         </div>
         <Footer />
       </div>
@@ -620,44 +531,41 @@ export default function StorePage() {
     <div className="min-h-screen flex flex-col">
       <div className="sigma-bg-effect" />
       <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-6 md:py-8">
-        {isDemo && (
-          <Alert className="mb-6 border-green-600 bg-green-500 bg-opacity-10 rounded-xl">
-            <CheckCircle className="h-4 w-4 text-green-400" />
-            <AlertDescription className="text-green-300">
-              <strong>Demo Purchase Successful!</strong> Credits have been added to your account and Discord
-              notification sent! In production, this would redirect to Stripe for real payment processing.
-            </AlertDescription>
+      <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
+        {(packageLoadError || serverLoadError) && (
+          <Alert className="mb-6 border-primary/25 bg-primary/[0.06] text-white">
+            <AlertTriangle className="h-4 w-4 text-primary" />
+            <AlertDescription>{packageLoadError || serverLoadError}</AlertDescription>
           </Alert>
         )}
         <div className="text-center mb-8 md:mb-12 sigma-slide-in">
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-black mb-4 md:mb-6 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 bg-clip-text text-transparent">
-            WARFARE STORE
+            Warfare X Store
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-            Buy credits, spend them on exclusive items, and dominate across all Warfare servers
+            Choose a credit bundle, link your player name, and pay securely. Credits post after payment confirmation.
           </p>
           <div className="flex justify-center space-x-6 md:space-x-12 mb-8 md:mb-12 sigma-slide-in-delay">
             <div className="text-center group">
               <div className="sigma-feature instant mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
                 <Zap className="w-6 h-6 md:w-7 md:h-7 text-black" />
               </div>
-              <h3 className="text-sm md:text-lg font-bold text-yellow-400 mb-1">INSTANT</h3>
-              <p className="text-xs md:text-sm text-gray-400">Lightning fast</p>
+              <h3 className="text-sm md:text-lg font-bold text-yellow-400 mb-1">CONFIRMED</h3>
+              <p className="text-xs md:text-sm text-gray-400">After payment confirmation</p>
             </div>
             <div className="text-center group">
               <div className="sigma-feature secure mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
                 <Shield className="w-6 h-6 md:w-7 md:h-7 text-black" />
               </div>
               <h3 className="text-sm md:text-lg font-bold text-white mb-1">SECURE</h3>
-              <p className="text-xs md:text-sm text-gray-400">Bank level</p>
+              <p className="text-xs md:text-sm text-gray-400">Stripe checkout</p>
             </div>
             <div className="text-center group">
               <div className="sigma-feature premium mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
                 <Award className="w-6 h-6 md:w-7 md:h-7 text-yellow-400" />
               </div>
-              <h3 className="text-sm md:text-lg font-bold text-yellow-400 mb-1">PREMIUM</h3>
-              <p className="text-xs md:text-sm text-gray-400">Exclusive</p>
+              <h3 className="text-sm md:text-lg font-bold text-yellow-400 mb-1">LINKED</h3>
+              <p className="text-xs md:text-sm text-gray-400">Verified account</p>
             </div>
           </div>
           {currentModeInfo && (
@@ -676,22 +584,24 @@ export default function StorePage() {
           <TabsList className="grid w-full grid-cols-2 mb-6 md:mb-8 bg-gray-900 border-gray-800 h-12 md:h-14">
             <TabsTrigger value="buy-credits" className="data-[state=active]:bg-gray-800 text-sm md:text-base font-bold">
               <CreditCard className="w-4 h-4 mr-2" />
-              BUY CREDITS
+              Buy credits
             </TabsTrigger>
             <TabsTrigger
               value="spend-credits"
               className="data-[state=active]:bg-gray-800 text-sm md:text-base font-bold"
             >
               <Package className="w-4 h-4 mr-2" />
-              SPEND CREDITS
+              Discord catalog
             </TabsTrigger>
           </TabsList>
           <TabsContent value="buy-credits">
             <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
               <div className="lg:col-span-2 order-2 lg:order-1">
-                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-white">CHOOSE YOUR PACKAGE</h2>
+                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-white">Choose a credit bundle</h2>
                 <div className="sigma-grid">
-                  {packages.map((pkg, index) => (
+                  {packages.length === 0 ? (
+                    <Card className="sigma-card p-6 sm:col-span-2 lg:col-span-3"><CardHeader><CardTitle className="text-white">No bundles available</CardTitle><CardDescription className="text-muted-foreground">Bundles appear here when the Warfare X store is configured.</CardDescription></CardHeader></Card>
+                  ) : packages.map((pkg, index) => (
                     <Card
                       key={pkg.id}
                       className={`cursor-pointer transition-all duration-300 relative overflow-hidden ${selectedPackage?.id === pkg.id ? "sigma-card selected" : "sigma-card"}`}
@@ -767,7 +677,7 @@ export default function StorePage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg md:text-xl text-white">
                       <ShoppingCart className="w-5 h-5" />
-                      ORDER SUMMARY
+                      Order details
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4 md:space-y-6">
@@ -803,11 +713,11 @@ export default function StorePage() {
                         </div>
                         <Separator className="bg-gray-700" />
                         <div>
-                          <label className="block text-sm font-semibold mb-3 text-white">SELECT SERVER</label>
+                          <label className="block text-sm font-semibold mb-3 text-white">Select a server</label>
                           <Select value={selectedServer} onValueChange={setSelectedServer}>
                             <SelectTrigger className="bg-gray-800 border-gray-700 h-12 w-full text-left hover:bg-gray-700 transition-colors focus:ring-2 focus:ring-primary focus:border-primary">
                               <div className="flex-1 text-left">
-                                <SelectValue placeholder="Choose a server" />
+                                <SelectValue placeholder={servers.length ? "Select a server" : "No active servers configured"} />
                               </div>
                             </SelectTrigger>
                             <SelectContent className="bg-gray-900 border-gray-700 z-50 max-h-60 overflow-y-auto">
@@ -830,23 +740,21 @@ export default function StorePage() {
                               {checkingLink ? (
                                 <div className="flex items-center gap-2 text-sm text-gray-400">
                                   <Loader size="sm" />
-                                  <span>Checking account link...</span>
+                                  <span>Checking linked account…</span>
                                 </div>
                               ) : linkStatus ? (
                                 linkStatus.isLinked ? (
                                   <div className="sigma-status success">
                                     <CheckCircle className="w-4 h-4" />
-                                    <span>LINKED: {linkStatus.username}</span>
+                                    <span>Linked player: {linkStatus.username}</span>
                                   </div>
                                 ) : (
                                   <div className="sigma-status warning">
                                     <AlertTriangle className="w-4 h-4" />
                                     <div className="flex flex-col">
-                                      <span>USE /LINK COMMAND IN DISCORD</span>
-                                      <span className="text-xs mt-1 opacity-75">
-                                        Your Discord ID:{" "}
-                                        {user.user_metadata?.provider_id || user.user_metadata?.sub || user.id}
-                                      </span>
+                                      <span>Account link required</span>
+                                      <span className="text-xs mt-1 opacity-75">Use this server's account-link instructions, then check again.</span>
+                                      <Button type="button" size="sm" variant="outline" className="mt-2 w-fit" onClick={checkUserLink}>Check link</Button>
                                     </div>
                                   </div>
                                 )
@@ -869,7 +777,7 @@ export default function StorePage() {
                             </div>
                           )}
                           <div className="flex justify-between font-bold text-lg border-t border-gray-700 pt-3">
-                            <span className="text-white">TOTAL:</span>
+                            <span className="text-white">Total:</span>
                             <span className="sigma-price">${selectedPackage.price.toFixed(2)}</span>
                           </div>
                         </div>
@@ -881,16 +789,16 @@ export default function StorePage() {
                           {purchasing ? (
                             <>
                               <Loader size="sm" />
-                              PROCESSING...
+                              Opening checkout…
                             </>
                           ) : !user ? (
-                            "SIGN IN TO PURCHASE"
+                            "Sign in to continue"
                           ) : !selectedServer ? (
-                            "SELECT SERVER"
+                            "Select a server"
                           ) : linkStatus && !linkStatus.isLinked ? (
-                            "LINK ACCOUNT FIRST"
+                            "Link your account first"
                           ) : (
-                            "PURCHASE NOW"
+                            "Continue to secure checkout"
                           )}
                         </Button>
                         <div className="grid grid-cols-3 gap-2 md:gap-4 pt-4 border-t border-gray-700">
@@ -904,21 +812,21 @@ export default function StorePage() {
                             <div className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 rounded-lg bg-yellow-500 bg-opacity-20 flex items-center justify-center">
                               <Clock className="w-3 h-3 md:w-4 md:h-4 text-yellow-400" />
                             </div>
-                            <span className="text-xs text-yellow-400 font-semibold">INSTANT</span>
+                            <span className="text-xs text-yellow-400 font-semibold">AFTER PAYMENT</span>
                           </div>
                           <div className="text-center">
                             <div className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 rounded-lg bg-yellow-500 bg-opacity-20 flex items-center justify-center">
                               <Award className="w-3 h-3 md:w-4 md:h-4 text-yellow-400" />
                             </div>
-                            <span className="text-xs text-yellow-400 font-semibold">PREMIUM</span>
+                            <span className="text-xs text-yellow-400 font-semibold">ACCOUNT LINK</span>
                           </div>
                         </div>
                       </>
                     ) : (
                       <div className="text-center text-gray-400 py-8 md:py-12">
                         <ShoppingCart className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 opacity-30" />
-                        <h3 className="text-base md:text-lg font-semibold mb-2">SELECT A PACKAGE</h3>
-                        <p className="text-sm">Choose a credit package to get started</p>
+                        <h3 className="text-base md:text-lg font-semibold mb-2">Select a bundle</h3>
+                        <p className="text-sm">Choose a credit bundle and server to review your order.</p>
                       </div>
                     )}
                   </CardContent>
@@ -930,20 +838,20 @@ export default function StorePage() {
             <div className="max-w-6xl mx-auto">
               {/* Header */}
               <div className="text-center mb-8 md:mb-12">
-                <h2 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4 text-white">SPEND YOUR CREDITS</h2>
+                <h2 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4 text-white">Community redemption catalog</h2>
                 <p className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto px-4 mb-6">
-                  Use your credits to purchase items, kits, and upgrades directly in Discord
+                  Browse the catalog listed for the community. Redemptions are handled through the server's Discord shop integration.
                 </p>
                 <div className="flex flex-wrap justify-center gap-4 mb-8">
                   <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
                     <Gamepad2 className="w-4 h-4 text-yellow-400" />
                     <code className="text-yellow-400 font-mono text-sm">/shop</code>
-                    <span className="text-gray-300 text-sm">- Browse & buy items</span>
+                    <span className="text-gray-300 text-sm">- Browse items when the shop is enabled</span>
                   </div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
                     <CreditCard className="w-4 h-4 text-yellow-400" />
                     <code className="text-yellow-400 font-mono text-sm">/economy</code>
-                    <span className="text-gray-300 text-sm">- Check balance & transfer</span>
+                    <span className="text-gray-300 text-sm">- Check balance when the economy bot is enabled</span>
                   </div>
                 </div>
               </div>
@@ -1018,15 +926,15 @@ export default function StorePage() {
                 <CardHeader className="text-center">
                   <CardTitle className="flex items-center justify-center gap-3 text-lg md:text-xl text-white">
                     <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-[#5865F2]" />
-                    PURCHASE IN DISCORD
+                    Redeem through Discord
                   </CardTitle>
                   <CardDescription className="text-gray-400">
-                    All items are available for purchase directly in our Discord server
+                    The website catalog is a reference; the server's Discord shop is the source of truth for availability.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-sm text-gray-400 mb-6">
-                    Join our Discord server and use{" "}
+                    Join the community Discord and use{" "}
                     <code className="bg-gray-800 px-2 py-1 rounded text-yellow-400">/shop</code> to browse and purchase
                     any of these items with your credits!
                   </p>
@@ -1038,7 +946,7 @@ export default function StorePage() {
                       className="flex items-center gap-2"
                     >
                       <MessageCircle className="w-4 h-4" />
-                      JOIN DISCORD SERVER
+                      Open community Discord
                       <ExternalLink className="w-4 h-4" />
                     </a>
                   </Button>

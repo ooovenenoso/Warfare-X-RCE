@@ -12,6 +12,8 @@ interface TransactionResult {
   credits: number
   server: string
   amount: number
+  delivered?: boolean
+  pending?: boolean
   error?: string
 }
 
@@ -62,7 +64,7 @@ export default function SuccessPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
           <p className="text-white">Verifying your payment...</p>
@@ -73,8 +75,8 @@ export default function SuccessPage() {
 
   if (!sessionId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full sigma-card">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 rounded-full bg-red-600">
@@ -85,7 +87,7 @@ export default function SuccessPage() {
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-gray-300 mb-6">No payment session found.</p>
-            <Link href="/">
+            <Link href="/store">
               <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
                 Return to Store
               </Button>
@@ -98,26 +100,26 @@ export default function SuccessPage() {
 
   if (!result?.success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full sigma-card">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 rounded-full bg-red-600">
                 <AlertCircle className="h-8 w-8 text-white" />
               </div>
             </div>
-            <CardTitle className="text-white text-2xl">Payment Failed</CardTitle>
+            <CardTitle className="text-white text-2xl">{result?.pending ? "Payment Processing" : "Payment Failed"}</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-gray-300">{result?.error || "Something went wrong with your payment."}</p>
+            <p className="text-gray-300">{result?.pending ? "Stripe is still confirming your payment. Refresh this page in a moment." : result?.error || "Something went wrong with your payment."}</p>
             <div className="flex flex-col space-y-3">
-              <Link href="/">
+              <Link href="/store">
                 <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
-                  Try Again
+                  Return to store
                 </Button>
               </Link>
-              <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700">
-                Contact Support
+              <Button asChild variant="outline" className="w-full border-white/15 text-white hover:bg-white/10">
+                <a href="https://discord.gg/playcnqr" target="_blank" rel="noopener noreferrer">Open community Discord</a>
               </Button>
             </div>
           </CardContent>
@@ -127,49 +129,48 @@ export default function SuccessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      <Card className="max-w-md w-full bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="max-w-md w-full sigma-card">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="p-3 rounded-full bg-green-600">
               <CheckCircle className="h-8 w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-white text-2xl">Payment Successful!</CardTitle>
+          <CardTitle className="text-white text-2xl">Payment confirmed</CardTitle>
         </CardHeader>
 
         <CardContent className="text-center space-y-6">
           <div className="bg-slate-700/50 rounded-lg p-4">
             <div className="flex items-center justify-center space-x-2 mb-2">
-              <Zap className="h-5 w-5 text-purple-400" />
-              <span className="text-white font-semibold">Credits Purchased</span>
+              <Zap className="h-5 w-5 text-primary" />
+              <span className="text-white font-semibold">Credits in this order</span>
             </div>
-            <div className="text-3xl font-bold text-purple-400">{result.credits.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-primary">{result.credits.toLocaleString()}</div>
           </div>
 
           <div className="text-sm text-gray-400 space-y-1">
             <p>Session ID: {sessionId.slice(0, 20)}...</p>
             <p>Amount: ${result.amount.toFixed(2)}</p>
             <p>Server: {result.server}</p>
-            <p>Status: ✅ Delivered</p>
+            <p>Status: {result.delivered ? "✅ Delivered" : "⏳ Payment confirmed; delivery pending"}</p>
           </div>
 
           <div className="bg-green-600/20 border border-green-500/30 rounded-lg p-4">
             <p className="text-green-300 text-sm">
-              🎉 Your credits have been instantly delivered to your account! You can start using them right away
-              in-game.
+              {result.delivered ? "🎉 Your credits have been delivered to your account." : "Your payment is confirmed. The store is waiting for your verified game-account link before delivering credits."}
             </p>
           </div>
 
           <div className="flex flex-col space-y-3">
-            <Link href="/">
+            <Link href="/store">
               <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
-                Buy More Credits
+                Buy more credits
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link href="/transactions">
-              <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700">
+              <Button variant="outline" className="w-full border-white/15 text-white hover:bg-white/10">
                 View Transaction History
               </Button>
             </Link>

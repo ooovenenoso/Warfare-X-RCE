@@ -14,7 +14,7 @@ interface Transaction {
   amount: number
   credits: number
   server_id: string
-  status: "pending" | "completed" | "failed" | "refunded"
+  status: "pending" | "processing" | "completed" | "failed" | "refunded" | "cancelled" | "cancelled"
   created_at: string
   completed_at?: string
   credit_packages?: {
@@ -24,7 +24,7 @@ interface Transaction {
 }
 
 export default function TransactionsPage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +50,7 @@ export default function TransactionsPage() {
       const mapped = (data.transactions || []).map((t: any) => ({
         id: t.id,
         package_id: t.package_id,
-        amount: t.final_amount,
+        amount: Number(t.final_amount),
         credits: t.credits_purchased,
         server_id: t.server_id,
         status: t.status,
@@ -61,7 +61,7 @@ export default function TransactionsPage() {
       setTransactions(mapped)
     } catch (error) {
       console.error("Error fetching transactions:", error)
-      setError("Failed to load transaction history")
+      setError("Could not load order history")
     } finally {
       setLoading(false)
     }
@@ -72,7 +72,8 @@ export default function TransactionsPage() {
       case "completed":
         return <CheckCircle className="h-4 w-4 text-green-500" />
       case "pending":
-        return <Clock className="h-4 w-4 text-yellow-500" />
+      case "processing":
+        return <Clock className="h-4 w-4 text-amber-400" />
       case "failed":
         return <XCircle className="h-4 w-4 text-red-500" />
       case "refunded":
@@ -91,7 +92,9 @@ export default function TransactionsPage() {
       case "failed":
         return "bg-red-600"
       case "refunded":
-        return "bg-blue-600"
+        return "bg-blue-700"
+      case "processing":
+        return "bg-amber-700"
       default:
         return "bg-gray-600"
     }
@@ -99,10 +102,10 @@ export default function TransactionsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-white">Loading transactions...</p>
+          <p className="text-white">Loading order history…</p>
         </div>
       </div>
     )
@@ -110,10 +113,10 @@ export default function TransactionsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <Card className="max-w-md w-full bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md w-full sigma-card">
           <CardContent className="text-center p-8">
-            <p className="text-white mb-4">Please sign in to view your transaction history</p>
+            <p className="text-white mb-4">Sign in with Discord to view your orders.</p>
             <Link href="/">
               <Button className="bg-purple-600 hover:bg-purple-700">Go to Home</Button>
             </Link>
@@ -124,17 +127,17 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Transaction History</h1>
-            <p className="text-gray-300">View all your credit purchases and transactions</p>
+            <h1 className="text-3xl font-bold text-white mb-2">Order history</h1>
+            <p className="text-gray-300">Track credit bundle orders and delivery status.</p>
           </div>
           <Link href="/">
-            <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+            <Button variant="outline" className="border-white/15 text-white hover:bg-white/10">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Store
+              Back to store
             </Button>
           </Link>
         </div>
@@ -151,18 +154,18 @@ export default function TransactionsPage() {
         )}
 
         {transactions.length === 0 ? (
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+          <Card className="sigma-card">
             <CardContent className="text-center p-8">
-              <p className="text-gray-300 mb-4">No transactions found</p>
+              <p className="text-gray-300 mb-4">No orders yet</p>
               <Link href="/">
-                <Button className="bg-purple-600 hover:bg-purple-700">Make Your First Purchase</Button>
+                <Button className="bg-purple-600 hover:bg-purple-700">Browse credit bundles</Button>
               </Link>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
             {transactions.map((transaction) => (
-              <Card key={transaction.id} className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <Card key={transaction.id} className="sigma-card">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
@@ -196,7 +199,7 @@ export default function TransactionsPage() {
                       <p className="text-white font-semibold">{transaction.server_id}</p>
                     </div>
                     <div>
-                      <p className="text-gray-400">Transaction ID</p>
+                      <p className="text-gray-400">Order reference</p>
                       <p className="text-white font-mono text-xs">{transaction.id.slice(0, 8)}...</p>
                     </div>
                   </div>

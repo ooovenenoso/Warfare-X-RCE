@@ -10,16 +10,15 @@ import { ErrorHandler } from "@/components/error-handler"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "CNQR x LOTUS - Warfare Store",
-  description: "Buy credits, spend them on exclusive items, and dominate across all Warfare servers",
-  keywords: ["gaming", "credits", "store", "warfare", "discord"],
-  authors: [{ name: "CNQR x LOTUS" }],
+  title: "Warfare X | Rust Console Edition Store",
+  description: "Browse Warfare X credit bundles, link your Rust Console Edition account, and check out securely.",
+  keywords: ["Warfare X", "Rust Console Edition", "community store", "credits", "Discord"],
+  authors: [{ name: "Warfare X" }],
   openGraph: {
-    title: "CNQR x LOTUS - Warfare Store",
-    description: "Buy credits, spend them on exclusive items, and dominate across all Warfare servers",
+    title: "Warfare X Store",
+    description: "Credit bundles for the Warfare X Rust Console Edition community.",
     type: "website",
   },
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({

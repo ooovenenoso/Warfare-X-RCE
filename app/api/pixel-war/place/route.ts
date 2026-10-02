@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase"
-import { headers } from "next/headers"
 
 function getUserIdentifier(request: Request) {
-  const headersList = headers()
-  const forwarded = headersList.get("x-forwarded-for")
-  const ip = forwarded ? forwarded.split(",")[0] : headersList.get("x-real-ip") || "unknown"
+  const forwarded = request.headers.get("x-forwarded-for")
+  const ip = forwarded ? forwarded.split(",")[0].trim() : request.headers.get("x-real-ip") || "unknown"
 
   return `ip_${ip}`
 }

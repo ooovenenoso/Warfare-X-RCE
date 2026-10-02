@@ -1,68 +1,34 @@
-import { createClient } from "@supabase/supabase-js"
-import { NextResponse } from "next/server"
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+import { NextResponse } from "next/server";
+import { createStoreAdminClient, getStoreAdmin } from "@/lib/store-server";
 
 export async function GET() {
   try {
-    // Get total revenue from completed transactions
-    const { data: revenueData } = await supabase
-      .from("store_transactions")
-      .select("final_amount")
-      .eq("status", "completed")
-
-    const totalRevenue = revenueData?.reduce((sum, transaction) => sum + Number(transaction.final_amount), 0) || 0
-
-    // Get total transactions count
-    const { count: totalTransactions } = await supabase
-      .from("store_transactions")
-      .select("*", { count: "exact" })
-      .eq("status", "completed")
-
-    // Get unique users count from transactions
-    const { data: uniqueUsers } = await supabase
-      .from("store_transactions")
-      .select("discord_id")
-      .eq("status", "completed")
-
-    const activeUsers = new Set(uniqueUsers?.map((u) => u.discord_id)).size
-
-    // Calculate conversion rate (completed vs total transactions)
-    const { count: totalAttempts } = await supabase.from("store_transactions").select("*", { count: "exact" })
-
-    const conversionRate = totalAttempts ? ((totalTransactions || 0) / totalAttempts) * 100 : 0
-
-    // Get monthly revenue data for chart
-    const { data: monthlyData } = await supabase
-      .from("store_transactions")
-      .select("final_amount, created_at")
-      .eq("status", "completed")
-      .gte("created_at", new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString()) // Last 6 months
-
-    const monthlyRevenue =
-      monthlyData?.reduce(
-        (acc, transaction) => {
-          const month = new Date(transaction.created_at).toLocaleString("default", { month: "short" })
-          acc[month] = (acc[month] || 0) + Number(transaction.final_amount)
-          return acc
-        },
-        {} as Record<string, number>,
-      ) || {}
-
-    const chartData = Object.entries(monthlyRevenue).map(([month, revenue]) => ({
-      month,
-      revenue: Math.round(revenue),
-    }))
-
-    return NextResponse.json({
-      totalRevenue: Math.round(totalRevenue * 100) / 100,
-      totalTransactions: totalTransactions || 0,
-      activeUsers,
-      conversionRate: Math.round(conversionRate * 10) / 10,
-      chartData,
-    })
-  } catch (error) {
-    console.error("Error fetching admin stats:", error)
-    return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 })
+    const admin = await getStoreAdmin();
+    if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const db = createStoreAdminClient();
+    const cutoff = new Date(); cutoff.setUTCMonth(cutoff.getUTCMonth() - 5, 1); cutoff.setUTCHours(0, 0, 0, 0);
+    const [completed, completedCount, attempts, monthly] = await Promise.all([
+      db.from("transactions").select("final_amount, user_id").eq("status", "completed"),
+      db.from("transactions").select("id", { count: "exact", head: true }).eq("status", "completed"),
+      db.from("transactions").select("id", { count: "exact", head: true }),
+      db.from("transactions").select("final_amount, created_at").eq("status", "completed").gte("created_at", cutoff.toISOString()),
+    ]);
+    if (completed.error || completedCount.error || attempts.error || monthly.error) throw new Error("Stats query failed");
+    const totalRevenue = (completed.data ?? []).reduce((sum, row) => sum + Number(row.final_amount ?? 0), 0);
+    const activeUsers = new Set((completed.data ?? []).map((row) => row.user_id).filter(Boolean)).size;
+    const total = attempts.count ?? 0;
+    const count = completedCount.count ?? 0;
+    const buckets = new Map<string, number>();
+    for (const row of monthly.data ?? []) {
+      const date = new Date(row.created_at);
+      const key = date.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+      buckets.set(key, (buckets.get(key) ?? 0) + Number(row.final_amount ?? 0));
+    }
+    const chartData = [...buckets.entries()].map(([month, revenue]) => ({ month, revenue: Math.round(revenue) }));
+    return NextResponse.json({ totalRevenue: Math.round(totalRevenue * 100) / 100, totalTransactions: count,
+      activeUsers, conversionRate: total ? Math.round((count / total) * 1000) / 10 : 0, chartData },
+      { headers: { "Cache-Control": "no-store" } });
+  } catch {
+    return NextResponse.json({ error: "Unable to load store statistics" }, { status: 503 });
   }
 }

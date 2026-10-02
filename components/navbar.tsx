@@ -27,7 +27,7 @@ export function Navbar() {
 
   const navigation = [
     { name: "Home", href: "/" },
-    { name: "Store", href: "/store" },
+    { name: "Credit store", href: "/store" },
     { name: "Discord", href: "https://discord.gg/playcnqr", external: true },
   ]
 
@@ -64,10 +64,10 @@ export function Navbar() {
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center space-x-2">
               <div className="text-2xl font-bold bg-gradient-to-r from-primary via-purple-500 to-primary bg-clip-text text-transparent">
-                CNQR
+                WARFARE X
               </div>
               <div className="hidden sm:block w-px h-6 bg-gray-600" />
-              <div className="hidden sm:block text-sm text-gray-400 font-medium">Credits Store</div>
+              <div className="hidden sm:block text-sm text-gray-400 font-medium">RUST CONSOLE EDITION</div>
             </Link>
             <div className="w-32 h-10 bg-gray-800 animate-pulse rounded" />
           </div>
@@ -83,14 +83,14 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3">
             <div className="relative w-10 h-10 rounded-lg p-1.5">
-              <Image src="/warfare-logo.png" alt="Warfare Logo" fill className="object-contain" />
+              <Image src="/warfare-logo.png" alt="Warfare X logo" fill className="object-contain" />
             </div>
             <div className="flex items-center space-x-2">
               <div className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 bg-clip-text text-transparent">
                 WARFARE
               </div>
               <div className="hidden sm:block w-px h-6 bg-gray-600" />
-              <div className="hidden sm:block text-sm text-gray-400 font-medium">Credits Store</div>
+              <div className="hidden sm:block text-sm text-gray-400 font-medium">RUST CONSOLE EDITION</div>
             </div>
           </Link>
 
@@ -115,7 +115,7 @@ export function Navbar() {
             {isLoading ? (
               <div className="flex items-center space-x-2 text-gray-400">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Loading...</span>
+                <span className="text-sm">Checking session...</span>
               </div>
             ) : user ? (
               <DropdownMenu>
@@ -143,7 +143,7 @@ export function Navbar() {
                       <DropdownMenuItem asChild>
                         <Link href="/transactions" className="flex items-center cursor-pointer">
                           <User className="mr-2 h-4 w-4" />
-                          <span>Transaction History</span>
+                          <span>Order history</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="bg-gray-800" />
@@ -154,7 +154,7 @@ export function Navbar() {
                       <DropdownMenuItem asChild>
                         <Link href="/admin" className="flex items-center cursor-pointer">
                           <Shield className="mr-2 h-4 w-4" />
-                          <span>Admin Panel</span>
+                          <span>Admin dashboard</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="bg-gray-800" />
@@ -168,7 +168,7 @@ export function Navbar() {
                       className="flex items-center cursor-pointer"
                     >
                       <MessageCircle className="mr-2 h-4 w-4" />
-                      <span>Discord Server</span>
+                      <span>Community Discord</span>
                     </a>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-gray-800" />
@@ -181,7 +181,7 @@ export function Navbar() {
             ) : (
               <Button onClick={signInWithDiscord} className="sigma-button" disabled={isLoading}>
                 <User className="mr-2 h-4 w-4" />
-                SIGN IN WITH DISCORD
+                Continue with Discord
               </Button>
             )}
 
@@ -220,7 +220,7 @@ export function Navbar() {
                         onClick={() => setIsOpen(false)}
                       >
                         <User className="w-4 h-4" />
-                        Transaction History
+                        Order history
                       </Link>
                       {isAdmin && (
                         <Link
@@ -229,7 +229,7 @@ export function Navbar() {
                           onClick={() => setIsOpen(false)}
                         >
                           <Shield className="w-4 h-4" />
-                          Admin Panel
+                          Admin dashboard
                         </Link>
                       )}
                       <Button

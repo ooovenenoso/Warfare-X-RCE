@@ -144,10 +144,13 @@ CROSS JOIN credit_packages cp
 WHERE RANDOM() < 0.1 -- 10% chance
 LIMIT 500;
 
-RAISE NOTICE '🎯 Sample data inserted successfully!';
-RAISE NOTICE '👥 Users: %', (SELECT COUNT(*) FROM users);
-RAISE NOTICE '💳 Transactions: %', (SELECT COUNT(*) FROM transactions);
-RAISE NOTICE '🔗 Username Links: %', (SELECT COUNT(*) FROM username_links);
-RAISE NOTICE '💰 Economy Balances: %', (SELECT COUNT(*) FROM economy_balance);
-RAISE NOTICE '🎁 Promotions: %', (SELECT COUNT(*) FROM promotions);
-RAISE NOTICE '📊 Analytics Events: %', (SELECT COUNT(*) FROM user_analytics);
+DO $$
+BEGIN
+  RAISE NOTICE '🎯 Sample data inserted successfully!';
+  RAISE NOTICE '👥 Users: %', (SELECT COUNT(*) FROM users);
+  RAISE NOTICE '💳 Transactions: %', (SELECT COUNT(*) FROM transactions);
+  RAISE NOTICE '🔗 Username Links: %', (SELECT COUNT(*) FROM username_links);
+  RAISE NOTICE '💰 Economy Balances: %', (SELECT COUNT(*) FROM economy_balance);
+  RAISE NOTICE '🎁 Promotions: %', (SELECT COUNT(*) FROM promotions);
+  RAISE NOTICE '📊 Analytics Events: %', (SELECT COUNT(*) FROM user_analytics);
+END $$;

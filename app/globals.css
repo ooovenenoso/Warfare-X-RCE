@@ -573,3 +573,88 @@ body.loading {
   width: 100% !important;
   height: 100% !important;
 }
+
+
+/* Warfare X visual refresh: restrained graphite, steel, and ember. */
+@layer base {
+  :root {
+    --background: 220 12% 6%;
+    --foreground: 35 15% 94%;
+    --card: 220 11% 10%;
+    --card-foreground: 35 15% 94%;
+    --popover: 220 12% 9%;
+    --popover-foreground: 35 15% 94%;
+    --primary: 17 68% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 10% 16%;
+    --secondary-foreground: 35 15% 94%;
+    --muted: 220 10% 16%;
+    --muted-foreground: 215 10% 66%;
+    --accent: 18 30% 18%;
+    --accent-foreground: 35 15% 94%;
+    --border: 220 10% 20%;
+    --input: 220 10% 20%;
+    --ring: 17 68% 50%;
+    --radius: 1rem;
+  }
+  body {
+    background:
+      radial-gradient(ellipse at 16% -8%, rgba(190, 77, 39, 0.16), transparent 38%),
+      radial-gradient(ellipse at 96% 38%, rgba(83, 96, 101, 0.10), transparent 34%),
+      linear-gradient(160deg, #101315 0%, #0b0d0f 62%, #101112 100%);
+  }
+}
+
+.sigma-card {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 1.125rem;
+  background: linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
+  box-shadow: 0 18px 44px rgba(0,0,0,0.22);
+  backdrop-filter: blur(16px);
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+.sigma-card::before { display: none; }
+.sigma-card:hover { border-color: rgba(204, 101, 61, 0.4); transform: translateY(-3px); box-shadow: 0 24px 54px rgba(0,0,0,0.28); }
+.sigma-card.selected { border-color: hsl(var(--primary)); background: rgba(190,77,39,0.09); animation: none; transform: translateY(-2px); }
+.sigma-button {
+  border: 1px solid rgba(235, 145, 106, 0.42);
+  border-radius: 0.8rem;
+  background: linear-gradient(135deg, #bd4f2d, #d36a40);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(145, 55, 30, 0.22);
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+  transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+.sigma-button:hover { transform: translateY(-1px); background: linear-gradient(135deg, #cf5e38, #df7951); box-shadow: 0 12px 28px rgba(145, 55, 30, 0.3); }
+.sigma-button:active { transform: translateY(0); }
+.sigma-button::before { display: none; }
+.sigma-badge { border: 1px solid rgba(255,255,255,0.13); background: rgba(255,255,255,0.07); color: #f2eee9; box-shadow: none; animation: none; letter-spacing: 0.08em; }
+.sigma-badge.popular, .sigma-badge.discount { border-color: rgba(213,111,70,0.38); background: rgba(190,77,39,0.14); color: #f0a17e; box-shadow: none; animation: none; }
+.sigma-badge.best-value { border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.08); color: #e8e3dc; box-shadow: none; }
+.sigma-price { background: none; color: #ee956f; -webkit-text-fill-color: currentColor; animation: none; text-shadow: none; }
+.sigma-feature { border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; background: rgba(255,255,255,0.055); box-shadow: none; }
+.sigma-feature.instant, .sigma-feature.secure, .sigma-feature.premium { background: rgba(190,77,39,0.12); border-color: rgba(190,77,39,0.25); box-shadow: none; }
+.sigma-feature:hover { transform: translateY(-2px); }
+.sigma-progress { background: rgba(255,255,255,0.08); }
+.sigma-progress-fill { background: linear-gradient(90deg, #bd4f2d, #e58a62); }
+.sigma-progress-fill::after { animation: none; }
+.sigma-status { border-width: 1px; border-radius: 0.75rem; letter-spacing: 0.04em; text-transform: none; }
+.sigma-status.success { background: rgba(47, 126, 94, 0.12); border-color: rgba(68, 171, 127, 0.28); color: #83d2aa; box-shadow: none; }
+.sigma-status.warning { background: rgba(190, 125, 45, 0.12); border-color: rgba(214, 156, 78, 0.28); color: #eac184; box-shadow: none; }
+.sigma-bg-effect::before { background: radial-gradient(circle, rgba(190,77,39,0.10), transparent 70%); animation: none; }
+.sigma-bg-effect::after { background: radial-gradient(circle, rgba(135,153,157,0.07), transparent 70%); animation: none; }
+.glow-text { text-shadow: 0 0 24px rgba(190,77,39,0.15); }
+.glow-border { box-shadow: 0 0 22px rgba(190,77,39,0.12); }
+.glow-hover:hover, .card-highlight:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.3); transform: translateY(-2px); }
+.grid-pattern, .hero-grid { background-image: linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px); background-size: 48px 48px; mask-image: linear-gradient(to bottom, black, transparent 88%); }
+.noise-texture { opacity: 0.025; }
+.hero-glow { height: 22rem; width: 22rem; border-radius: 9999px; background: rgba(190,77,39,0.13); filter: blur(90px); }
+.hero-glow-left { left: -11rem; top: 8rem; }
+.hero-glow-right { right: -12rem; bottom: 2rem; background: rgba(102,122,128,0.10); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+[data-radix-select-trigger]:focus, [data-radix-select-trigger][data-state="open"] { border-color: hsl(var(--primary)) !important; outline: 2px solid hsl(var(--primary) / 0.25) !important; outline-offset: 1px; }

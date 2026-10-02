@@ -1,119 +1,111 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { type NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+import { calculateStorePrice, createStoreAdminClient, getPriceMode, getStoreIdentity } from "@/lib/store-server";
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+export const runtime = "nodejs";
+
+function siteOrigin(request: NextRequest): string {
+  const configured = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
+  return new URL(configured || request.nextUrl.origin).origin;
+}
 
 export async function POST(request: NextRequest) {
+  let transactionId: string | undefined;
   try {
-    const { packageId, serverId, discordId } = await request.json()
+    const identity = await getStoreIdentity();
+    if (!identity) return NextResponse.json({ error: "Sign in with Discord before checkout" }, { status: 401 });
 
-    const sessionClient = createRouteHandlerClient({ cookies })
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
+    let body: { packageId?: unknown; serverId?: unknown };
+    try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid request body" }, { status: 400 }); }
+    const packageId = typeof body.packageId === "string" ? body.packageId.trim() : "";
+    const serverId = typeof body.serverId === "string" ? body.serverId.trim() : "";
+    if (!packageId || !serverId) return NextResponse.json({ error: "Package and server are required" }, { status: 400 });
 
-    const sessionDiscordId = user?.user_metadata?.provider_id || user?.user_metadata?.sub || user?.id
-    const finalDiscordId = discordId || sessionDiscordId || "unknown"
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) return NextResponse.json({ error: "Payments are not configured" }, { status: 503 });
 
-    if (!packageId || !serverId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    const db = createStoreAdminClient();
+    const [{ data: server, error: serverError }, { data: packageData, error: packageError }, { data: link, error: linkError }] = await Promise.all([
+      db.from("servers").select("id").eq("id", serverId).eq("is_active", true).maybeSingle(),
+      db.from("credit_packages").select("id, name, description, credits, base_price, is_active").eq("id", packageId).eq("is_active", true).maybeSingle(),
+      db.from("username_links").select("username").eq("discord_id", identity.discordId).eq("server_id", serverId).eq("is_verified", true).maybeSingle(),
+    ]);
+    if (serverError || packageError || linkError) throw new Error("Store data lookup failed");
+    if (!server) return NextResponse.json({ error: "That server is not available" }, { status: 404 });
+    if (!packageData) return NextResponse.json({ error: "That package is not available" }, { status: 404 });
+    if (!link) return NextResponse.json({ error: "Link and verify your Discord account with this server before buying" }, { status: 409 });
+
+    const basePrice = Number(packageData.base_price);
+    if (!Number.isFinite(basePrice) || basePrice <= 0 || !Number.isInteger(packageData.credits) || packageData.credits <= 0) {
+      return NextResponse.json({ error: "The selected package is not configured correctly" }, { status: 409 });
     }
+    const mode = await getPriceMode(db);
+    const price = calculateStorePrice(basePrice, mode);
+    const amountCents = Math.round(price * 100);
+    if (amountCents < 50) return NextResponse.json({ error: "Package price is below Stripe's minimum" }, { status: 409 });
 
-    // Check if Stripe is configured
-    if (!process.env.STRIPE_SECRET_KEY) {
-      // Demo mode - simulate successful purchase
-      const demoTransaction = {
-        id: "demo-" + Date.now(),
-        packageId,
-        serverId,
-        discordId: discordId || "907231041167716352",
-        amount: 19.99,
-        credits: 2500,
-        status: "completed",
-      }
+    const metadata = identity.user.user_metadata ?? {};
+    const username = String(metadata.global_name ?? metadata.name ?? identity.user.email?.split("@")[0] ?? ("player-" + identity.discordId.slice(-4))).slice(0, 64);
+    const { data: storeUser, error: userError } = await db.from("users").upsert({
+      discord_id: identity.discordId,
+      username,
+      email: identity.user.email ?? null,
+      avatar: metadata.avatar_url ?? metadata.picture ?? null,
+      last_login: new Date().toISOString(),
+    }, { onConflict: "discord_id" }).select("id").single();
+    if (userError || !storeUser) throw new Error("Could not create store user");
 
-      // Simulate webhook call for demo
-      try {
-        await fetch(`${request.nextUrl.origin}/api/verify-payment`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: "demo-session-" + Date.now() }),
-        })
-      } catch (error) {
-        // Silent fail for demo webhook
-      }
-
-      return NextResponse.json({
-        demo: true,
-        transaction: demoTransaction,
-        message: "Demo purchase completed successfully!",
-      })
-    }
-
-    // Real Stripe integration
-    const Stripe = (await import("stripe")).default
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-
-    // Fetch package details
-    const { data: package_data, error: packageError } = await supabase
-      .from("credit_packages")
-      .select("*")
-      .eq("id", packageId)
-      .single()
-
-    if (packageError || !package_data) {
-      return NextResponse.json({ error: "Package not found" }, { status: 404 })
-    }
-
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: package_data.name,
-              description: `${package_data.credits.toLocaleString()} credits - ${package_data.description}`,
-            },
-            unit_amount: Math.round((package_data.current_price || package_data.base_price) * 100),
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      success_url: `${request.nextUrl.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${request.nextUrl.origin}/store`,
-      metadata: {
-        packageId,
-        discordId: finalDiscordId,
-        serverId: serverId || "default",
-        credits: package_data.credits.toString(),
-      },
-    })
-
-    // Create pending transaction record
-    const { error: transactionError } = await supabase.from("store_transactions").insert({
-      package_id: packageId,
-      discord_id: finalDiscordId,
-      server_id: serverId || "default",
-      stripe_session_id: session.id,
-      base_amount: package_data.base_price || package_data.current_price,
-      final_amount: package_data.current_price || package_data.base_price,
-      credits_purchased: package_data.credits,
+    const { data: transaction, error: transactionError } = await db.from("transactions").insert({
+      user_id: storeUser.id,
+      package_id: packageData.id,
+      server_id: serverId,
+      base_amount: basePrice,
+      final_amount: price,
+      credits_purchased: packageData.credits,
+      credits_delivered: 0,
       status: "pending",
       payment_status: "pending",
-    })
+      delivery_status: "pending",
+      payment_method: "stripe",
+    }).select("id").single();
+    if (transactionError || !transaction) throw new Error("Could not create pending transaction");
+    transactionId = transaction.id;
 
-    if (transactionError) {
-      // Don't log error
+    const stripe = new Stripe(stripeKey);
+    const origin = siteOrigin(request);
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: amountCents,
+          product_data: {
+            name: packageData.name,
+            description: (Number(packageData.credits).toLocaleString() + " credits — " + (packageData.description ?? "Game server credits")).slice(0, 500),
+          },
+        },
+      }],
+      success_url: origin + "/success?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: origin + "/store",
+      customer_email: identity.user.email ?? undefined,
+      metadata: { transaction_id: transaction.id, discord_id: identity.discordId, server_id: serverId, package_id: packageData.id },
+    });
+
+    const { error: saveSessionError } = await db.from("transactions")
+      .update({ stripe_session_id: session.id })
+      .eq("id", transaction.id);
+    if (saveSessionError) {
+      await stripe.checkout.sessions.expire(session.id).catch(() => undefined);
+      throw new Error("Could not save Stripe session");
     }
-
-    return NextResponse.json({ url: session.url })
+    return NextResponse.json({ url: session.url, transactionId: transaction.id });
   } catch (error) {
-    // Don't log error
-    return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })
+    if (transactionId) {
+      try { await createStoreAdminClient().from("transactions").update({ status: "failed", payment_status: "failed" }).eq("id", transactionId).eq("status", "pending"); } catch { /* preserve original error */ }
+    }
+    console.error("Checkout could not be started", error instanceof Error ? error.message : "unknown error");
+    return NextResponse.json({ error: "Unable to start checkout. Please try again or contact support." }, { status: 503 });
   }
 }

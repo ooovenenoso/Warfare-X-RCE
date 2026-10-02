@@ -1,45 +1,25 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
-import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { NextResponse } from "next/server";
+import { createStoreAdminClient, getStoreIdentity } from "@/lib/store-server";
 
 export async function POST(request: Request) {
-  const supabaseSession = createRouteHandlerClient({ cookies })
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-
-  const { serverId, discordId: bodyDiscordId } = await request.json()
-
-  const {
-    data: { user },
-  } = await supabaseSession.auth.getUser()
-
-  const sessionDiscordId = user?.user_metadata?.provider_id || user?.user_metadata?.sub
-  const discordId = bodyDiscordId || sessionDiscordId
-
-  if (!discordId) {
-    return NextResponse.json({ error: "Could not determine Discord ID" }, { status: 400 })
-  }
-
-  if (!serverId) {
-    return NextResponse.json({ error: "Server ID is required" }, { status: 400 })
-  }
-
   try {
-    const { data, error } = await supabase
-      .from("UsernameLinks")
-      .select("username")
-      .eq("discord_id", discordId)
+    const identity = await getStoreIdentity();
+    if (!identity) return NextResponse.json({ error: "Sign in with Discord first" }, { status: 401 });
+    let body: { serverId?: unknown };
+    try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid request body" }, { status: 400 }); }
+    const serverId = typeof body.serverId === "string" ? body.serverId.trim() : "";
+    if (!serverId) return NextResponse.json({ error: "Server ID is required" }, { status: 400 });
+
+    const db = createStoreAdminClient();
+    const { data, error } = await db.from("username_links")
+      .select("username, is_verified")
+      .eq("discord_id", identity.discordId)
       .eq("server_id", serverId)
-      .single()
-
-    if (error || !data) {
-      // Don't log potentially sensitive info
-      return NextResponse.json({ isLinked: false, username: null })
-    }
-
-    return NextResponse.json({ isLinked: true, username: data.username })
-  } catch (error) {
-    // Don't log error to console
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+      .eq("is_verified", true)
+      .maybeSingle();
+    if (error) throw error;
+    return NextResponse.json({ isLinked: Boolean(data), username: data?.username ?? null });
+  } catch {
+    return NextResponse.json({ error: "Unable to check the linked game account" }, { status: 503 });
   }
 }
